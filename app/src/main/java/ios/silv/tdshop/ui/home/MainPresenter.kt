@@ -19,15 +19,46 @@ import logcat.asLog
 import logcat.logcat
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
+import shop.terminal.api.core.JsonField
+import shop.terminal.api.core.JsonValue
 import shop.terminal.api.models.product.Product
+import shop.terminal.api.models.product.Product.Subscription
+import shop.terminal.api.models.product.Product.Tags
+import shop.terminal.api.models.product.ProductVariant
 
 sealed interface MainEvent {
     data object Refresh : MainEvent
+    data class ViewProduct(val product: UiProduct) : MainEvent
 }
+
+data class UiProduct(
+    val id: String,
+    val description: String,
+    val name: String,
+    val variants: List<ProductVariant>,
+    val order: Long?,
+    val subscription: Subscription?,
+    val tags: Tags?,
+    val additionalProperties: Map<String, JsonValue>
+) {
+
+    constructor(product: Product) : this(
+        id = product.id(),
+        description = product.description(),
+        name = product.name(),
+        variants = product.variants(),
+        order = product.order(),
+        subscription = product.subscription(),
+        tags = product.tags(),
+        additionalProperties = product._additionalProperties()
+    )
+}
+
 
 data class MainState(
     val loading: Boolean,
-    val products: List<String>,
+    val products: List<UiProduct>,
+    val selectedProduct: UiProduct?,
     val settingsState: SettingsState,
 )
 
@@ -50,33 +81,40 @@ fun mainPresenterProvider(
 
     var fetchId by remember { mutableIntStateOf(0) }
     var loading by remember { mutableStateOf(false) }
-    var products by remember { mutableStateOf(emptyList<String>()) }
+    var products by remember { mutableStateOf(emptyList<UiProduct>()) }
+
+    var selectedProduct by remember { mutableStateOf<UiProduct?>(null) }
 
     SafeLaunchedEffect(fetchId) {
         loading = true
-        val names = client
+        val results = client
             .getProductList()
             .onFailure { logcat { it.asLog() } }
             .getOrDefault(emptyList<Product>())
-            .map { it.name() }
+            .map { product ->
+                UiProduct(product)
+            }
 
-        logcat { "received $names" }
+        logcat { "received $results" }
 
         Snapshot.withMutableSnapshot {
             loading = false
-            products = names
+            products = results
+            selectedProduct = results.firstOrNull()
         }
     }
 
     EventEffect(eventFlow) {
         when (it) {
             MainEvent.Refresh -> fetchId++
+            is MainEvent.ViewProduct -> selectedProduct = it.product
         }
     }
 
     MainState(
         loading = loading,
         products = products,
-        settingsState = settingsState
+        settingsState = settingsState,
+        selectedProduct = selectedProduct
     )
 }

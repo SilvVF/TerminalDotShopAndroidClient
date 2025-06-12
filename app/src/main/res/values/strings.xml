@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">tdshop</string>
+    <string name="connection_failed">Connection failed, Check your network settings.</string>
+</resources>

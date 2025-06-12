@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import ios.silv.tdshop.R
-import ios.silv.tdshop.di.requireAppComponent
+import ios.silv.tdshop.di.requireActivityComponent
 import ios.silv.tdshop.nav.LocalBackStack
 import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.SnapshotStateStack
@@ -22,7 +22,7 @@ private fun Throwable.toApplicationErrorMessage(
 
 @Composable
 fun <T> providePresenterDefaults(
-    userMessageStateHolder: UserMessageStateHolder = requireAppComponent().userMessageStateHolder,
+    userMessageStateHolder: UserMessageStateHolder = requireActivityComponent().userMessageStateHolder,
     backStack: SnapshotStateStack<Screen> = LocalBackStack.current,
     block: @Composable (UserMessageStateHolder, SnapshotStateStack<Screen>) -> T,
 ): T {

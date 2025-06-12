@@ -2,11 +2,9 @@ package ios.silv.tdshop
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.datastore.core.DataStore
@@ -15,7 +13,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import ios.silv.tdshop.di.requireAppComponent
+import io.github.osipxd.security.crypto.encryptedDataStore
+import io.github.osipxd.security.crypto.encryptedPreferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,8 +29,11 @@ import me.tatarka.inject.annotations.Inject
 
 val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
+val Context.encryptedStore: DataStore<Preferences> by encryptedPreferencesDataStore(name = "encrypted_settings.pb")
+
+
 sealed interface SettingsEvent {
-    data class Edit(val transform: suspend (MutablePreferences) -> Unit): SettingsEvent
+    data class Edit(val transform: suspend (MutablePreferences) -> Unit) : SettingsEvent
 }
 
 data class SettingsState(
@@ -44,10 +46,19 @@ object Keys {
     val TOKEN = stringPreferencesKey("token")
 }
 
-class SettingsStore(
-    private val store: DataStore<Preferences>
-) {
+class EncryptedSettingsStore(dataStore: DataStore<Preferences>): SettingsStoreImpl(dataStore) {
+    val tokenFlow by preferenceStateFlow(
+        Keys.TOKEN,
+        if (BuildConfig.DEBUG) BuildConfig.testKey else ""
+    )
+}
+class SettingsStore(dataStore: DataStore<Preferences>): SettingsStoreImpl(dataStore) {
 
+}
+
+abstract class SettingsStoreImpl(
+    private val store: DataStore<Preferences>,
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     var initialized by mutableStateOf(false)
@@ -59,14 +70,12 @@ class SettingsStore(
 
     init {
         scope.launch {
-            initialValues.let {
+            (initialValues).let {
                 initialized = true
                 logcat { "initialized settings" }
             }
         }
     }
-
-    val tokenFlow by preferenceStateFlow(Keys.TOKEN, "")
 
     fun <KeyType, StateType> preferenceStateFlow(
         key: Preferences.Key<KeyType>,
@@ -106,17 +115,18 @@ typealias settingsPresenterProvider = @Composable () -> SettingsState
 @Inject
 @Composable
 fun settingsPresenterProvider(
-    store: SettingsStore
+    store: SettingsStore,
+    encryptedSettingsStore: EncryptedSettingsStore
 ): SettingsState {
 
     val scope = rememberCoroutineScope()
-    val token by store.tokenFlow.collectAsState()
+    val token by encryptedSettingsStore.tokenFlow.collectAsState()
 
     return SettingsState(
         initialized = store.initialized,
         token = token
     ) { event ->
-        when(event) {
+        when (event) {
             is SettingsEvent.Edit -> {
                 scope.launch {
                     store.edit(event.transform)

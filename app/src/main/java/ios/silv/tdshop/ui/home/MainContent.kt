@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -29,6 +31,7 @@ fun EntryProviderBuilder<Screen>.mainScreenEntry() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainContent(
     state: MainState,
@@ -36,28 +39,33 @@ private fun MainContent(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        DraggableNavLayout(
-            modifier = Modifier
-                .padding(2.dp)
-                .padding(innerPadding),
-            nav = {
-                TerminalSection(
-                    label = { TerminalSectionDefaults.Label("Nav") },
-                ) {
-                    Box(Modifier.fillMaxSize())
-                }
-            }
+        PullToRefreshBox(
+            onRefresh = { events.tryEmit(MainEvent.Refresh) },
+            isRefreshing = state.loading,
         ) {
-            TerminalSection(
-                label = {
-                    TerminalSectionDefaults.Label("Greeting")
+            DraggableNavLayout(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .padding(innerPadding),
+                nav = {
+                    TerminalSection(
+                        label = { TerminalSectionDefaults.Label("Nav") },
+                    ) {
+                        Box(Modifier.fillMaxSize())
+                    }
                 }
             ) {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(
-                        items = state.products
-                    ) {
-                        Text(it)
+                TerminalSection(
+                    label = {
+                        TerminalSectionDefaults.Label("Greeting")
+                    }
+                ) {
+                    LazyColumn(Modifier.fillMaxSize()) {
+                        items(
+                            items = state.products
+                        ) {
+                            Text(it)
+                        }
                     }
                 }
             }

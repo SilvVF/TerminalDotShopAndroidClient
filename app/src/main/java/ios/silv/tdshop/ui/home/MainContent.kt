@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.internal.rememberComposableLambda
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -61,11 +63,15 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastSumBy
 import androidx.navigation3.runtime.EntryProviderBuilder
 import androidx.navigation3.runtime.entry
 import ios.silv.tdshop.nav.Home
 import ios.silv.tdshop.nav.Screen
+import ios.silv.tdshop.types.UiCart
+import ios.silv.tdshop.types.UiProduct
 import ios.silv.tdshop.ui.compose.EventFlow
 import ios.silv.tdshop.ui.compose.MutedAlpha
 import ios.silv.tdshop.ui.compose.isLight
@@ -125,7 +131,12 @@ private fun MainContent(
                         }
                     ) { selected ->
                         if (selected != null) {
-                            ProductDetails(selected, Modifier.fillMaxSize())
+                            ProductDetails(
+                                product = selected,
+                                qty = state.cart.items.fastFilter { it.id == selected.id }.size,
+                                events = events,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         } else {
                             EmptyProductScreen(state, events, navDragState, Modifier.fillMaxSize())
                         }
@@ -248,6 +259,8 @@ private fun ProductNavItem(
 @Composable
 private fun ProductDetails(
     product: UiProduct,
+    qty: Int,
+    events: EventFlow<MainEvent>,
     modifier: Modifier = Modifier,
 ) {
     Box(Modifier.fillMaxSize()) {
@@ -257,20 +270,32 @@ private fun ProductDetails(
                 .verticalScroll(rememberScrollState())
                 .padding(12.dp)
         ) {
+            var variant by remember { mutableStateOf(product.variants.first()) }
             val productColor = product.color ?: MaterialTheme.colorScheme.primary
+
             Text(product.name, style = MaterialTheme.typography.titleMedium)
             product.variants.fastForEach {
-                Text(
-                    it.name,
-                    color = LocalContentColor.current.copy(
-                        alpha = MutedAlpha
+                Column(
+                    modifier = Modifier
+                        .clickable { variant = it }
+                ) {
+                    Text(
+                        it.name,
+                        textDecoration = if (variant == it) {
+                            TextDecoration.Underline
+                        } else {
+                            TextDecoration.None
+                        },
+                        color = LocalContentColor.current.copy(
+                            alpha = MutedAlpha
+                        )
                     )
-                )
-                Text(
-                    "$${it.usd}",
-                    color = productColor,
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
+                    Text(
+                        "$${it.usd}",
+                        color = productColor,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+                }
             }
             Text(
                 product.description,
@@ -278,19 +303,24 @@ private fun ProductDetails(
                     alpha = MutedAlpha
                 )
             )
-            if (product.subscription?.isValid() == true) {
-                when (product.subscription.value()) {
-                    Product.Subscription.Value._UNKNOWN,
-                    Product.Subscription.Value.ALLOWED -> {
-                        QtyIndicator()
-                    }
 
-                    Product.Subscription.Value.REQUIRED -> {
-                        SubscriptionIndicator(product)
-                    }
-                }
+            if (product.subscription?.isValid() == true && product.subscription.value() == Product.Subscription.Value.REQUIRED) {
+                SubscriptionIndicator(
+                    subscribe = {
+                        events.tryEmit(MainEvent.Subscribe(product, variant))
+                    },
+                    product = product
+                )
             } else {
-                QtyIndicator()
+                QtyIndicator(
+                    qty = qty,
+                    add = {
+                        events.tryEmit(MainEvent.AddToCart(product, variant))
+                    },
+                    dec = {
+                        events.tryEmit(MainEvent.RemoveFromCart(product, variant))
+                    }
+                )
             }
         }
 
@@ -358,6 +388,7 @@ fun EmptyProductScreen(
 
 @Composable
 private fun SubscriptionIndicator(
+    subscribe: () -> Unit,
     product: UiProduct,
     modifier: Modifier = Modifier
 ) {
@@ -368,7 +399,7 @@ private fun SubscriptionIndicator(
     ) {
         Button(
             shape = RectangleShape,
-            onClick = {},
+            onClick = subscribe,
             colors = ButtonDefaults.buttonColors(
                 containerColor = product.color ?: MaterialTheme.colorScheme.primary
             )
@@ -387,14 +418,19 @@ private fun SubscriptionIndicator(
 }
 
 @Composable
-private fun QtyIndicator(modifier: Modifier = Modifier) {
+private fun QtyIndicator(
+    qty: Int,
+    add: () -> Unit,
+    dec: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         TextButton(
-            onClick = {}
+            onClick = dec
         ) {
             Text(
                 "-",
@@ -403,9 +439,9 @@ private fun QtyIndicator(modifier: Modifier = Modifier) {
                 )
             )
         }
-        Text("0")
+        Text("$qty")
         TextButton(
-            onClick = {},
+            onClick = add,
         ) {
             Text(
                 "+",
@@ -419,8 +455,8 @@ private fun QtyIndicator(modifier: Modifier = Modifier) {
 
 @Composable
 private fun CartEdit(
-    qty: Int = 0,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    qty: Int = 0
 ) {
     Row(
         modifier,
@@ -465,6 +501,8 @@ private fun PreviewMainScreen() {
                     MainEvent.Refresh -> {}
                     is MainEvent.ViewProduct -> selected =
                         if (selected == it.product) null else it.product
+
+                    else -> Unit
                 }
             }
         }
@@ -473,7 +511,8 @@ private fun PreviewMainScreen() {
             state = MainState(
                 loading = false,
                 products = previewUiProducts,
-                selectedProduct = selected
+                selectedProduct = selected,
+                cart = UiCart()
             ),
             events = events
         )

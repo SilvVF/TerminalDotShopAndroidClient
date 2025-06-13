@@ -1,6 +1,7 @@
 package ios.silv.tdshop.ui.home
 
 import ios.silv.tdshop.BuildConfig
+import ios.silv.tdshop.types.UiProduct
 import shop.terminal.api.models.product.Product.Subscription
 
 val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
@@ -9,7 +10,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "Subscribe to cron, our monthly coffee subscription. Each month you'll receive a special flavor-of-the-month blend - first box ships Feb 1st. And now we can add our MRR to the Terminal X bio!",
         name = "cron",
         variants = listOf(
-            UiProduct.Variant(name = "12oz", price = 3000)
+            UiProduct.Variant(name = "12oz", price = 3000, id = "")
         ),
         order = 1,
         subscription = Subscription.REQUIRED,
@@ -25,7 +26,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A light roast from the Sidama region of Ethiopia. Featuring notes of red berries, tropical fruits, and caramel, this is the best way to get in the flow — the perfect state of productivity.",
         name = "flow",
         variants = listOf(
-            UiProduct.Variant(name = "12oz", price = 2200)
+            UiProduct.Variant(name = "12oz", price = 2200, id = "")
         ),
         order = 1,
         subscription = null,
@@ -41,7 +42,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "Working the backend and frontend of the palette, this new artisinal infusion is a collaboration with Laravel from Colombia and Papua New Guinea and is full stack in flavour and texture.",
         name = "artisan",
         variants = listOf(
-            UiProduct.Variant(name = "Hybrid | 12oz | Whole Beans", price = 2200)
+            UiProduct.Variant(name = "Hybrid | 12oz | Whole Beans", price = 2200, id = "")
         ),
         order = 2,
         subscription = Subscription.ALLOWED,
@@ -57,7 +58,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "The interpolation of Caturra and Castillo varietals from Las Cochitas creates this refreshing citrusy and complex coffee.",
         name = "origin",
         variants = listOf(
-            UiProduct.Variant(name = "Light Roast | 12oz | Whole Beans", price = 2200)
+            UiProduct.Variant(name = "Light Roast | 12oz | Whole Beans", price = 2200, id = "")
         ),
         order = 100,
         subscription = Subscription.ALLOWED,
@@ -73,7 +74,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A savory yet sweet blend created from a natural fault in the coffee cherry that causes it to develop one bean instead of two.",
         name = "segfault",
         variants = listOf(
-            UiProduct.Variant(name = "Medium Roast | 12oz | Whole Beans", price = 2200)
+            UiProduct.Variant(name = "Medium Roast | 12oz | Whole Beans", price = 2200, id = "")
         ),
         order = 200,
         subscription = Subscription.ALLOWED,
@@ -89,7 +90,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A dark roast from the Cerrado region of Brazil, an expansive lush and tropical savanna that creates a dark chocolate blend with hints of almond.",
         name = "dark mode",
         variants = listOf(
-            UiProduct.Variant(name = "Dark Roast | 12oz | Whole Beans", price = 2200)
+            UiProduct.Variant(name = "Dark Roast | 12oz | Whole Beans", price = 2200, id = "")
         ),
         order = 300,
         subscription = Subscription.ALLOWED,
@@ -105,7 +106,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A flavorful decaf coffee processed in the mountain waters of Brazil to create a dark chocolatey blend.",
         name = "404",
         variants = listOf(
-            UiProduct.Variant(name = "Decaf | 12oz | Whole Beans", price = 2200)
+            UiProduct.Variant(name = "Decaf | 12oz | Whole Beans", price = 2200, id = "")
         ),
         order = 400,
         subscription = Subscription.ALLOWED,

@@ -7,61 +7,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import ios.silv.tdshop.di.requireActivityComponent
+import ios.silv.tdshop.net.CartRepo
 import ios.silv.tdshop.net.ProductRepo
+import ios.silv.tdshop.types.UiCart
+import ios.silv.tdshop.types.UiProduct
 import ios.silv.tdshop.ui.compose.EventEffect
 import ios.silv.tdshop.ui.compose.EventFlow
 import ios.silv.tdshop.ui.compose.providePresenterDefaults
-import ios.silv.tdshop.ui.compose.toColor
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
-import shop.terminal.api.models.product.Product
-import shop.terminal.api.models.product.Product.Subscription
 
 sealed interface MainEvent {
     data object Refresh : MainEvent
     data class ViewProduct(val product: UiProduct) : MainEvent
-}
-
-data class UiProduct(
-    val id: String,
-    val description: String,
-    val name: String,
-    val variants: List<Variant>,
-    val order: Long?,
-    val subscription: Subscription?,
-    val featured: Boolean,
-    val app: String,
-    val colorString: String,
-    val marketEu: Boolean,
-    val marketGlobal: Boolean,
-    val marketNa: Boolean,
-) {
-
-    data class Variant(
-        val name: String,
-        val price: Long
-    ) {
-        val usd = price / 100
-    }
-
-    val color = colorString.takeIf { it.isNotEmpty() }?.toColor()
-
-    constructor(product: Product) : this(
-        id = product.id(),
-        description = product.description(),
-        name = product.name(),
-        variants = product.variants().filter { it.isValid() }.map {
-            Variant(it.name(), it.price())
-        },
-        order = product.order(),
-        subscription = product.subscription(),
-        featured = product.tags()?.featured() == true,
-        app = product.tags()?.app().orEmpty(),
-        colorString = product.tags()?.color().orEmpty(),
-        marketNa = product.tags()?.marketNa() == true,
-        marketEu = product.tags()?.marketEu() == true,
-        marketGlobal = product.tags()?.marketGlobal() == true
-    )
+    data class AddToCart(val product: UiProduct, val variant: UiProduct.Variant) : MainEvent
+    data class RemoveFromCart(val product: UiProduct, val variant: UiProduct.Variant) : MainEvent
+    data class Subscribe(val product: UiProduct, val variant: UiProduct.Variant) : MainEvent
 }
 
 
@@ -69,6 +30,7 @@ data class MainState(
     val loading: Boolean,
     val products: List<UiProduct>,
     val selectedProduct: UiProduct?,
+    val cart: UiCart,
 ) {
 
     val featured = products.filter { it.featured }.sortedBy { it.order }
@@ -86,29 +48,46 @@ typealias mainPresenterProvider = @Composable (eventFlow: EventFlow<MainEvent>) 
 @Inject
 fun mainPresenterProvider(
     productRepo: ProductRepo,
+    cartRepo: CartRepo,
     @Assisted eventFlow: EventFlow<MainEvent>,
 ): MainState = providePresenterDefaults { userMessageHolder, backstack ->
 
-    var loading by remember { mutableStateOf(false) }
-    val products by rememberUpdatedState(productRepo.products())
+    val cart by rememberUpdatedState(cartRepo.cart())
+
+    val loading = productRepo.loading()
+    val products = productRepo.products()
 
     var selectedProduct by remember { mutableStateOf<UiProduct?>(products.firstOrNull()) }
 
-    EventEffect(eventFlow) {
-        when (it) {
-            MainEvent.Refresh -> {
-                loading = true
-                productRepo.refresh()
-                loading = false
+    EventEffect(eventFlow) { event ->
+        when (event) {
+            MainEvent.Refresh -> productRepo.refresh()
+            is MainEvent.ViewProduct -> selectedProduct = event.product
+            is MainEvent.AddToCart -> cartRepo.addItem {
+                productVariantId(event.variant.id)
+                quantity(
+                    cart.items.count { it.id == event.product.id } + 1L
+                )
             }
 
-            is MainEvent.ViewProduct -> selectedProduct = it.product
+            is MainEvent.RemoveFromCart -> {
+                val count =  cart.items.count { it.id == event.product.id } - 1L
+                if (count < 0) {
+                    return@EventEffect
+                }
+                cartRepo.addItem {
+                    productVariantId(event.variant.id)
+                    quantity(count)
+                }
+            }
+            is MainEvent.Subscribe -> TODO()
         }
     }
 
     MainState(
         loading = loading,
         products = products,
-        selectedProduct = selectedProduct
+        selectedProduct = selectedProduct,
+        cart = cart
     )
 }

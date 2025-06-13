@@ -53,6 +53,10 @@ data class UiCartItem(
     val subtotal: Long,
 ) {
 
+    fun matches(id: String, variant: UiProduct.Variant): Boolean {
+        return id == this.id && variant.id == this.productVariantId
+    }
+
     constructor(item: Item) : this(
         id = item.id(),
         productVariantId = item.productVariantId(),

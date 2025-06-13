@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
@@ -17,11 +19,13 @@ import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.rememberStateStack
 import ios.silv.tdshop.ui.home.mainScreenEntry
 import ios.silv.tdshop.ui.theme.TdshopTheme
+import ios.silv.term_ui.LocalSharedTransitionScope
 
 class MainActivity : ComponentActivity() {
 
     lateinit var mainComponent: MainActivityComponent
 
+    @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -32,22 +36,27 @@ class MainActivity : ComponentActivity() {
 
             val backStack = rememberStateStack<Screen>(Home)
 
-            CompositionLocalProvider(
-                LocalBackStack provides backStack
-            ) {
-                TdshopTheme {
-                    NavDisplay(
-                        backStack = backStack.items,
-                        entryDecorators = listOf(
-                            // Add the default decorators for managing scenes and saving state
-                            rememberSceneSetupNavEntryDecorator(),
-                            rememberSavedStateNavEntryDecorator(),
-                        ),
-                        onBack = { backStack.pop() },
-                        entryProvider = entryProvider {
-                            mainScreenEntry()
-                        }
-                    )
+            SharedTransitionLayout {
+                CompositionLocalProvider(
+                    LocalBackStack provides backStack,
+                    LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                ) {
+                    TdshopTheme {
+                        NavDisplay(
+                            backStack = backStack.items,
+                            entryDecorators = listOf(
+                                // Add the default decorators for managing scenes and saving state
+                                rememberSceneSetupNavEntryDecorator(),
+                                rememberSavedStateNavEntryDecorator(),
+                            ),
+                            onBack = { backStack.pop() },
+                            entryProvider = entryProvider {
+                                mainScreenEntry(
+                                    sharedTransitionScope = this@SharedTransitionLayout
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }

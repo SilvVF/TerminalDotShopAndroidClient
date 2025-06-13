@@ -66,12 +66,17 @@ fun mainPresenterProvider(
             is MainEvent.AddToCart -> cartRepo.addItem {
                 productVariantId(event.variant.id)
                 quantity(
-                    cart.items.count { it.id == event.product.id } + 1L
+                    cart.items.count { item ->
+                        item.matches(event.product.id, event.variant)
+                    } + 1L
                 )
             }
 
             is MainEvent.RemoveFromCart -> {
-                val count =  cart.items.count { it.id == event.product.id } - 1L
+                val count =
+                    cart.items.count { item ->
+                        item.matches(event.product.id, event.variant)
+                    } - 1L
                 if (count < 0) {
                     return@EventEffect
                 }
@@ -80,6 +85,7 @@ fun mainPresenterProvider(
                     quantity(count)
                 }
             }
+
             is MainEvent.Subscribe -> TODO()
         }
     }

@@ -57,7 +57,7 @@ fun SafeLaunchedEffect(key: Any?, block: suspend CoroutineScope.() -> Unit) {
 }
 
 @Composable
-fun <T : R, R> Flow<T>.safeCollectAsRetainedState(
+fun <T : R, R> Flow<T>.safeCollectAsState(
     initial: R,
     context: CoroutineContext = EmptyCoroutineContext,
 ): State<R> {
@@ -82,9 +82,9 @@ fun <T : R, R> Flow<T>.safeCollectAsRetainedState(
 
 @Suppress("StateFlowValueCalledInComposition")
 @Composable
-fun <T : R, R> StateFlow<T>.safeCollectAsRetainedState(
+fun <T : R, R> StateFlow<T>.safeCollectAsState(
     context: CoroutineContext = EmptyCoroutineContext,
 ): State<R> {
-    return safeCollectAsRetainedState(value, context)
+    return safeCollectAsState(value, context)
 
 }

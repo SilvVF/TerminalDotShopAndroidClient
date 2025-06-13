@@ -2,29 +2,20 @@ package ios.silv.tdshop.ui.home
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
-import ios.silv.tdshop.SettingsState
 import ios.silv.tdshop.di.requireActivityComponent
-import ios.silv.tdshop.net.ShopClient
-import ios.silv.tdshop.settingsPresenterProvider
+import ios.silv.tdshop.net.ProductRepo
 import ios.silv.tdshop.ui.compose.EventEffect
 import ios.silv.tdshop.ui.compose.EventFlow
-import ios.silv.tdshop.ui.compose.SafeLaunchedEffect
 import ios.silv.tdshop.ui.compose.providePresenterDefaults
-import logcat.asLog
-import logcat.logcat
+import ios.silv.tdshop.ui.compose.toColor
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
-import shop.terminal.api.core.JsonField
-import shop.terminal.api.core.JsonValue
 import shop.terminal.api.models.product.Product
 import shop.terminal.api.models.product.Product.Subscription
-import shop.terminal.api.models.product.Product.Tags
-import shop.terminal.api.models.product.ProductVariant
 
 sealed interface MainEvent {
     data object Refresh : MainEvent
@@ -35,22 +26,41 @@ data class UiProduct(
     val id: String,
     val description: String,
     val name: String,
-    val variants: List<ProductVariant>,
+    val variants: List<Variant>,
     val order: Long?,
     val subscription: Subscription?,
-    val tags: Tags?,
-    val additionalProperties: Map<String, JsonValue>
+    val featured: Boolean,
+    val app: String,
+    val colorString: String,
+    val marketEu: Boolean,
+    val marketGlobal: Boolean,
+    val marketNa: Boolean,
 ) {
+
+    data class Variant(
+        val name: String,
+        val price: Long
+    ) {
+        val usd = price / 100
+    }
+
+    val color = colorString.takeIf { it.isNotEmpty() }?.toColor()
 
     constructor(product: Product) : this(
         id = product.id(),
         description = product.description(),
         name = product.name(),
-        variants = product.variants(),
+        variants = product.variants().filter { it.isValid() }.map {
+            Variant(it.name(), it.price())
+        },
         order = product.order(),
         subscription = product.subscription(),
-        tags = product.tags(),
-        additionalProperties = product._additionalProperties()
+        featured = product.tags()?.featured() == true,
+        app = product.tags()?.app().orEmpty(),
+        colorString = product.tags()?.color().orEmpty(),
+        marketNa = product.tags()?.marketNa() == true,
+        marketEu = product.tags()?.marketEu() == true,
+        marketGlobal = product.tags()?.marketGlobal() == true
     )
 }
 
@@ -59,8 +69,11 @@ data class MainState(
     val loading: Boolean,
     val products: List<UiProduct>,
     val selectedProduct: UiProduct?,
-    val settingsState: SettingsState,
-)
+) {
+
+    val featured = products.filter { it.featured }.sortedBy { it.order }
+    val nonFeatured = products.filterNot { it.featured }.sortedBy { it.order }
+}
 
 @Composable
 fun mainPresenter(
@@ -72,41 +85,23 @@ typealias mainPresenterProvider = @Composable (eventFlow: EventFlow<MainEvent>) 
 @Composable
 @Inject
 fun mainPresenterProvider(
-    client: ShopClient,
-    settingsPresenterProvider: Lazy<settingsPresenterProvider>,
+    productRepo: ProductRepo,
     @Assisted eventFlow: EventFlow<MainEvent>,
 ): MainState = providePresenterDefaults { userMessageHolder, backstack ->
 
-    val settingsState = settingsPresenterProvider.value()
-
-    var fetchId by remember { mutableIntStateOf(0) }
     var loading by remember { mutableStateOf(false) }
-    var products by remember { mutableStateOf(emptyList<UiProduct>()) }
+    val products by rememberUpdatedState(productRepo.products())
 
-    var selectedProduct by remember { mutableStateOf<UiProduct?>(null) }
-
-    SafeLaunchedEffect(fetchId) {
-        loading = true
-        val results = client
-            .getProductList()
-            .onFailure { logcat { it.asLog() } }
-            .getOrDefault(emptyList<Product>())
-            .map { product ->
-                UiProduct(product)
-            }
-
-        logcat { "received $results" }
-
-        Snapshot.withMutableSnapshot {
-            loading = false
-            products = results
-            selectedProduct = results.firstOrNull()
-        }
-    }
+    var selectedProduct by remember { mutableStateOf<UiProduct?>(products.firstOrNull()) }
 
     EventEffect(eventFlow) {
         when (it) {
-            MainEvent.Refresh -> fetchId++
+            MainEvent.Refresh -> {
+                loading = true
+                productRepo.refresh()
+                loading = false
+            }
+
             is MainEvent.ViewProduct -> selectedProduct = it.product
         }
     }
@@ -114,7 +109,6 @@ fun mainPresenterProvider(
     MainState(
         loading = loading,
         products = products,
-        settingsState = settingsState,
         selectedProduct = selectedProduct
     )
 }

@@ -5,19 +5,37 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.TextAutoSizeDefaults
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,20 +43,44 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.navigation3.runtime.EntryProviderBuilder
 import androidx.navigation3.runtime.entry
 import ios.silv.tdshop.nav.Home
 import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.ui.compose.EventFlow
+import ios.silv.tdshop.ui.compose.MutedAlpha
+import ios.silv.tdshop.ui.compose.isLight
 import ios.silv.tdshop.ui.compose.rememberEventFlow
+import ios.silv.tdshop.ui.compose.toColor
+import ios.silv.tdshop.ui.theme.TdshopTheme
 import ios.silv.term_ui.DraggableNavLayout
+import ios.silv.term_ui.NavLayoutDragState
 import ios.silv.term_ui.TerminalSection
+import ios.silv.term_ui.TerminalSectionButton
 import ios.silv.term_ui.TerminalSectionDefaults
+import ios.silv.term_ui.TerminalSplitButton
+import ios.silv.term_ui.rememberNavLayoutDraggableState
+import shop.terminal.api.models.product.Product
+import kotlin.Unit
 
 fun EntryProviderBuilder<Screen>.mainScreenEntry() {
     entry<Home> {
@@ -56,6 +98,7 @@ private fun MainContent(
     events: EventFlow<MainEvent>,
     modifier: Modifier = Modifier,
 ) {
+    val navDragState = rememberNavLayoutDraggableState()
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
         PullToRefreshBox(
             onRefresh = { events.tryEmit(MainEvent.Refresh) },
@@ -65,36 +108,9 @@ private fun MainContent(
                 modifier = Modifier
                     .padding(2.dp)
                     .padding(innerPadding),
+                state = navDragState,
                 nav = {
-                    TerminalSection(
-                        label = { TerminalSectionDefaults.Label("Products") },
-                    ) {
-                        LazyColumn(
-                            Modifier.fillMaxSize()
-                        ) {
-                            items(state.products) { product ->
-                                val containerColor = if (state.selectedProduct == product) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    Color.Unspecified
-                                }
-                                TextButton(
-                                    onClick = {
-                                        events.tryEmit(MainEvent.ViewProduct(product))
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        containerColor = containerColor,
-                                        contentColor = contentColorFor(containerColor)
-                                    ),
-                                    shape = RectangleShape,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(text = product.name)
-                                }
-                                HorizontalDivider()
-                            }
-                        }
-                    }
+                    ProductNavBar(state, events)
                 }
             ) {
                 TerminalSection(
@@ -111,7 +127,7 @@ private fun MainContent(
                         if (selected != null) {
                             ProductDetails(selected, Modifier.fillMaxSize())
                         } else {
-                            Box(Modifier.fillMaxSize())
+                            EmptyProductScreen(state, events, navDragState, Modifier.fillMaxSize())
                         }
                     }
                 }
@@ -121,15 +137,345 @@ private fun MainContent(
 }
 
 @Composable
+private fun ProductNavBar(
+    state: MainState,
+    events: EventFlow<MainEvent>,
+    modifier: Modifier = Modifier
+) {
+    TerminalSection(
+        modifier = modifier,
+        label = { TerminalSectionDefaults.Label("Products") },
+    ) {
+        LazyColumn(
+            Modifier.fillMaxSize()
+        ) {
+            if (state.featured.isNotEmpty()) {
+                item {
+                    ProductNavLabel(
+                        "~ Featured ~",
+                        selected = state.selectedProduct?.featured == true,
+                        Modifier.padding(vertical = 12.dp)
+                    )
+                    HorizontalDivider()
+                }
+                items(state.featured) { product ->
+                    ProductNavItem(
+                        product = product,
+                        selectedProduct = state.selectedProduct,
+                        onView = { events.tryEmit(MainEvent.ViewProduct(product)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    HorizontalDivider()
+                }
+            }
+            item {
+                ProductNavLabel(
+                    "~ Originals ~",
+                    selected = state.selectedProduct?.featured != true,
+                    Modifier.padding(vertical = 12.dp)
+                )
+                HorizontalDivider()
+            }
+            items(state.nonFeatured) { product ->
+                ProductNavItem(
+                    product = product,
+                    selectedProduct = state.selectedProduct,
+                    onView = { events.tryEmit(MainEvent.ViewProduct(product)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProductNavLabel(
+    name: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    BasicText(
+        text = name,
+        style = MaterialTheme.typography.labelMedium.copy(
+            textAlign = TextAlign.Center,
+            textDecoration = if (selected) {
+                TextDecoration.Underline
+            } else {
+                TextDecoration.None
+            }
+        ),
+        maxLines = 1,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(2.dp),
+        autoSize = TextAutoSize.StepBased(maxFontSize = MaterialTheme.typography.labelMedium.fontSize)
+    )
+}
+
+@Composable
+private fun ProductNavItem(
+    onView: () -> Unit,
+    product: UiProduct,
+    selectedProduct: UiProduct?,
+    modifier: Modifier = Modifier
+) {
+    val productColor = product.color
+    val containerColor = if (selectedProduct == product) {
+        productColor ?: MaterialTheme.colorScheme.primary
+    } else {
+        Color.Unspecified
+    }
+
+    TextButton(
+        onClick = onView,
+        colors = ButtonDefaults.textButtonColors(
+            containerColor = containerColor,
+            contentColor = when {
+                selectedProduct != product -> productColor ?: Color.Unspecified
+                productColor == null -> contentColorFor(containerColor)
+                productColor.isLight() -> Color.Black
+                else -> Color.White
+            }
+        ),
+        shape = RectangleShape,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Text(text = product.name)
+    }
+}
+
+@Composable
 private fun ProductDetails(
     product: UiProduct,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(12.dp)
+        ) {
+            val productColor = product.color ?: MaterialTheme.colorScheme.primary
+            Text(product.name, style = MaterialTheme.typography.titleMedium)
+            product.variants.fastForEach {
+                Text(
+                    it.name,
+                    color = LocalContentColor.current.copy(
+                        alpha = MutedAlpha
+                    )
+                )
+                Text(
+                    "$${it.usd}",
+                    color = productColor,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+            }
+            Text(
+                product.description,
+                color = LocalContentColor.current.copy(
+                    alpha = MutedAlpha
+                )
+            )
+            if (product.subscription?.isValid() == true) {
+                when (product.subscription.value()) {
+                    Product.Subscription.Value._UNKNOWN,
+                    Product.Subscription.Value.ALLOWED -> {
+                        QtyIndicator()
+                    }
+
+                    Product.Subscription.Value.REQUIRED -> {
+                        SubscriptionIndicator(product)
+                    }
+                }
+            } else {
+                QtyIndicator()
+            }
+        }
+
+        Box(
+            Modifier
+                .align(BottomEnd)
+                .padding(end = 12.dp)
+        ) {
+            if (product.subscription == Product.Subscription.REQUIRED) {
+                TerminalSectionButton(
+                    onClick = {},
+                    label = { TerminalSectionDefaults.Label("Subscribe") }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = null
+                    )
+                }
+            } else {
+                CartEdit()
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyProductScreen(
+    state: MainState,
+    events: EventFlow<MainEvent>,
+    navDragState: NavLayoutDragState,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier) {
+        if (state.products.isEmpty()) {
+            Text("Loading...", Modifier.align(Alignment.Center))
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    color = LocalContentColor.current.copy(
+                        alpha = MutedAlpha
+                    ),
+                    modifier = Modifier.width(300.dp),
+                    textAlign = TextAlign.Center,
+                    text = "Open the nav bar to view products list"
+                )
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    shape = RectangleShape,
+                    onClick = {
+                        navDragState.show()
+                    },
+                ) {
+                    Text(
+                        "Products",
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubscriptionIndicator(
+    product: UiProduct,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        Text("$product")
+        Button(
+            shape = RectangleShape,
+            onClick = {},
+            colors = ButtonDefaults.buttonColors(
+                containerColor = product.color ?: MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Text(
+                "Subscribe",
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            "Enter", style = LocalTextStyle.current.copy(
+                color = LocalContentColor.current.copy(alpha = MutedAlpha)
+            )
+        )
+    }
+}
+
+@Composable
+private fun QtyIndicator(modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        TextButton(
+            onClick = {}
+        ) {
+            Text(
+                "-",
+                style = LocalTextStyle.current.copy(
+                    color = LocalContentColor.current.copy(alpha = MutedAlpha)
+                )
+            )
+        }
+        Text("0")
+        TextButton(
+            onClick = {},
+        ) {
+            Text(
+                "+",
+                style = LocalTextStyle.current.copy(
+                    color = LocalContentColor.current.copy(alpha = MutedAlpha)
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun CartEdit(
+    qty: Int = 0,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        TerminalSplitButton(
+            label = {
+                TerminalSectionDefaults.Label("+/- qty")
+            },
+            onRightClick = {},
+            onLeftClick = {},
+            left = {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = null
+                )
+            },
+            right = {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null
+                )
+            }
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewMainScreen() {
+    TdshopTheme {
+
+        val events = rememberEventFlow<MainEvent>()
+        var selected by remember {
+            mutableStateOf<UiProduct?>(null)
+        }
+
+        LaunchedEffect(Unit) {
+            events.collect {
+                when (it) {
+                    MainEvent.Refresh -> {}
+                    is MainEvent.ViewProduct -> selected =
+                        if (selected == it.product) null else it.product
+                }
+            }
+        }
+
+        MainContent(
+            state = MainState(
+                loading = false,
+                products = previewUiProducts,
+                selectedProduct = selected
+            ),
+            events = events
+        )
     }
 }

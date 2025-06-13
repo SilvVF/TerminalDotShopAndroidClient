@@ -107,9 +107,8 @@ private class TerminalLayoutMeasurePolicy(
 
         val labelY = labelOffset.y.roundToPx()
 
-        val contentX = 0
-        val contentY =
-            (layoutHeight - labelPlaceable.height + labelHalfHeight - contentPlaceable.height) / 2
+        val contentX = (layoutWidth - contentPlaceable.width) / 2
+        val contentY = ((layoutHeight - contentPlaceable.height + labelHalfHeight) / 2)
 
         return layout(layoutWidth, layoutHeight) {
             wrapperPlaceable.place(0, labelHalfHeight)
@@ -117,11 +116,10 @@ private class TerminalLayoutMeasurePolicy(
             contentPlaceable.place(contentX, contentY)
         }
     }
-
 }
 
 @Composable
-fun TerminalSectionButton(
+fun  TerminalSectionButton(
     onClick: () -> Unit,
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
@@ -137,7 +135,9 @@ fun TerminalSectionButton(
             CompositionLocalProvider(
                 LocalContentColor provides contentColorFor(containerColor)
             ) {
-                content()
+                Box(Modifier.wrapContentSize(), Alignment.Center) {
+                    content()
+                }
             }
             label()
             Box(

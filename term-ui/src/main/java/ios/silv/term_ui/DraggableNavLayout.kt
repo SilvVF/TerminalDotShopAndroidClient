@@ -51,6 +51,9 @@ class NavLayoutDragState(
     private val scope: CoroutineScope,
     internal val anchoredDraggableState: AnchoredDraggableState<NavLayoutAnchors>
 ) {
+    val maxWidth: Float
+        get() = anchoredDraggableState.anchors.maxPosition()
+
     val current: NavLayoutAnchors
         get() = anchoredDraggableState.currentValue
 

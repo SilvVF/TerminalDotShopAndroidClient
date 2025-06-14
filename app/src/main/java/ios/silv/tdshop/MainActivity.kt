@@ -17,9 +17,12 @@ import ios.silv.tdshop.nav.Home
 import ios.silv.tdshop.nav.LocalBackStack
 import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.rememberStateStack
+import ios.silv.tdshop.ui.cart.cartScreenEntry
 import ios.silv.tdshop.ui.home.mainScreenEntry
+import ios.silv.tdshop.ui.ship.shipScreenEntry
 import ios.silv.tdshop.ui.theme.TdshopTheme
 import ios.silv.term_ui.LocalSharedTransitionScope
+import kotlin.math.min
 
 class MainActivity : ComponentActivity() {
 
@@ -34,7 +37,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
 
-            val backStack = rememberStateStack<Screen>(Home)
+            val backStack = rememberStateStack<Screen>(Home, minSize = 1)
 
             SharedTransitionLayout {
                 CompositionLocalProvider(
@@ -52,6 +55,12 @@ class MainActivity : ComponentActivity() {
                             onBack = { backStack.pop() },
                             entryProvider = entryProvider {
                                 mainScreenEntry(
+                                    sharedTransitionScope = this@SharedTransitionLayout
+                                )
+                                cartScreenEntry(
+                                    sharedTransitionScope = this@SharedTransitionLayout
+                                )
+                                shipScreenEntry(
                                     sharedTransitionScope = this@SharedTransitionLayout
                                 )
                             }

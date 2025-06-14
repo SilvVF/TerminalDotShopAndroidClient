@@ -1,16 +1,70 @@
 package ios.silv.tdshop.ui.home
 
 import ios.silv.tdshop.BuildConfig
+import ios.silv.tdshop.types.UiCart
+import ios.silv.tdshop.types.UiCart.Amount
+import ios.silv.tdshop.types.UiCart.Ship
+import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.types.UiProduct.Variant
 import shop.terminal.api.models.product.Product.Subscription
 
-val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
+val cartPreviewData = UiCart(
+    amount = Amount(
+        subtotal = 11_000,
+        shipping = null,
+        total = 11_000
+    ),
+    items = listOf(
+        UiCartItem(
+            id = "itm_01JXNMETR6Y6T1R5JHKFYB4XP9",
+            productVariantId = "var_01J1JFDMNBXB5GJCQF6C3AEBCQ",
+            quantity = 1,
+            subtotal = 2_200
+        ),
+        UiCartItem(
+            id = "itm_01JXNMF2R4PKAF9YN3MGXZPFS2",
+            productVariantId = "var_01J1JFE53306NT180RC4HGPWH8",
+            quantity = 1,
+            subtotal = 2_200
+        ),
+        UiCartItem(
+            id = "itm_01JXNMTNM5BS7097FB022PZSWK",
+            productVariantId = "var_01J1JFF4D5PBGT0W2RJ7FREHRR",
+            quantity = 1,
+            subtotal = 2_200
+        ),
+        UiCartItem(
+            id = "itm_01JXNMQDP1EKFR7KQ07PV7FQFT",
+            productVariantId = "var_01J5RJYPPNQMBANJ8XKPF4GV00",
+            quantity = 1,
+            subtotal = 2_200
+        ),
+        UiCartItem(
+            id = "itm_01JXNMNNVHJ6F2AQKZ20TJ1QJH",
+            productVariantId = "var_01JNH7GTF9FBA62Y0RT0WMK3BT",
+            quantity = 1,
+            subtotal = 2_200
+        )
+    ),
+    subtotal = 11_000,
+    addressId = null,
+    cardId = null,
+    shipping = Ship(
+        service = null,
+        timeframe = null
+    ),
+    initialized = true
+)
+
+
+val previewUiProducts = listOf(
     UiProduct(
         id = "prd_01JD0E7PD4H3XDZA5P5VXSDPQC",
         description = "Subscribe to cron, our monthly coffee subscription. Each month you'll receive a special flavor-of-the-month blend - first box ships Feb 1st. And now we can add our MRR to the Terminal X bio!",
         name = "cron",
         variants = listOf(
-            UiProduct.Variant(name = "12oz", price = 3000, id = "")
+            Variant(name = "12oz", price = 3000, id = "var_01JD0E87SB7K9MB5KGFPVJ1N7A")
         ),
         order = 1,
         subscription = Subscription.REQUIRED,
@@ -26,7 +80,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A light roast from the Sidama region of Ethiopia. Featuring notes of red berries, tropical fruits, and caramel, this is the best way to get in the flow — the perfect state of productivity.",
         name = "flow",
         variants = listOf(
-            UiProduct.Variant(name = "12oz", price = 2200, id = "")
+            Variant(name = "12oz", price = 2200, id = "var_01JNH7GTF9FBA62Y0RT0WMK3BT")
         ),
         order = 1,
         subscription = null,
@@ -42,7 +96,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "Working the backend and frontend of the palette, this new artisinal infusion is a collaboration with Laravel from Colombia and Papua New Guinea and is full stack in flavour and texture.",
         name = "artisan",
         variants = listOf(
-            UiProduct.Variant(name = "Hybrid | 12oz | Whole Beans", price = 2200, id = "")
+            Variant(name = "Hybrid | 12oz | Whole Beans", price = 2200, id = "var_01J5RJYPPNQMBANJ8XKPF4GV00")
         ),
         order = 2,
         subscription = Subscription.ALLOWED,
@@ -56,9 +110,9 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
     UiProduct(
         id = "prd_01J1JFDYPMKTESS6FQFMTTMJYK",
         description = "The interpolation of Caturra and Castillo varietals from Las Cochitas creates this refreshing citrusy and complex coffee.",
-        name = "origin",
+        name = "citrus blend",
         variants = listOf(
-            UiProduct.Variant(name = "Light Roast | 12oz | Whole Beans", price = 2200, id = "")
+            Variant(name = "Light Roast | 12oz | Whole Beans", price = 2200, id = "var_01J1JFE53306NT180RC4HGPWH8")
         ),
         order = 100,
         subscription = Subscription.ALLOWED,
@@ -74,7 +128,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A savory yet sweet blend created from a natural fault in the coffee cherry that causes it to develop one bean instead of two.",
         name = "segfault",
         variants = listOf(
-            UiProduct.Variant(name = "Medium Roast | 12oz | Whole Beans", price = 2200, id = "")
+            Variant(name = "Medium Roast | 12oz | Whole Beans", price = 2200, id = "var_01J1JFDMNBXB5GJCQF6C3AEBCQ")
         ),
         order = 200,
         subscription = Subscription.ALLOWED,
@@ -90,7 +144,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A dark roast from the Cerrado region of Brazil, an expansive lush and tropical savanna that creates a dark chocolate blend with hints of almond.",
         name = "dark mode",
         variants = listOf(
-            UiProduct.Variant(name = "Dark Roast | 12oz | Whole Beans", price = 2200, id = "")
+            Variant(name = "Dark Roast | 12oz | Whole Beans", price = 2200, id = "var_01J1JFF4D5PBGT0W2RJ7FREHRR")
         ),
         order = 300,
         subscription = Subscription.ALLOWED,
@@ -106,7 +160,7 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         description = "A flavorful decaf coffee processed in the mountain waters of Brazil to create a dark chocolatey blend.",
         name = "404",
         variants = listOf(
-            UiProduct.Variant(name = "Decaf | 12oz | Whole Beans", price = 2200, id = "")
+            Variant(name = "Decaf | 12oz | Whole Beans", price = 2200, id = "var_01J1JFEP8WXK5MKXNBTR2FJ1YC")
         ),
         order = 400,
         subscription = Subscription.ALLOWED,
@@ -118,4 +172,5 @@ val previewUiProducts = if (!BuildConfig.DEBUG) emptyList() else listOf(
         marketNa = true
     )
 )
+
 

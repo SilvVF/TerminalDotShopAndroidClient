@@ -2,14 +2,10 @@ package ios.silv.tdshop.ui.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,88 +13,73 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.text.TextAutoSizeDefaults
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.internal.rememberComposableLambda
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.BottomEnd
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.util.fastSumBy
 import androidx.navigation3.runtime.EntryProviderBuilder
 import androidx.navigation3.runtime.entry
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import ios.silv.tdshop.BuildConfig
+import ios.silv.tdshop.nav.Cart
 import ios.silv.tdshop.nav.Home
 import ios.silv.tdshop.nav.LocalBackStack
 import ios.silv.tdshop.nav.Screen
-import ios.silv.tdshop.types.UiCart
+import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.ui.components.QtyIndicator
 import ios.silv.tdshop.ui.compose.EventFlow
 import ios.silv.tdshop.ui.compose.MutedAlpha
 import ios.silv.tdshop.ui.compose.isLight
 import ios.silv.tdshop.ui.compose.rememberEventFlow
-import ios.silv.tdshop.ui.compose.toColor
-import ios.silv.tdshop.ui.home.PoppableDestinationTopAppBar
 import ios.silv.tdshop.ui.theme.TdshopTheme
 import ios.silv.term_ui.DraggableNavLayout
-import ios.silv.term_ui.LocalSharedTransitionScope
 import ios.silv.term_ui.NavLayoutDragState
-import ios.silv.term_ui.PersistentNavigationBar
-import ios.silv.term_ui.PersistentNavigationRail
+import ios.silv.term_ui.PersistentCustomFab
 import ios.silv.term_ui.PersistentScaffold
+import ios.silv.term_ui.PoppableDestinationTopAppBar
 import ios.silv.term_ui.ScaffoldState
 import ios.silv.term_ui.TerminalSection
 import ios.silv.term_ui.TerminalSectionButton
@@ -108,72 +89,85 @@ import ios.silv.term_ui.TerminalTitle
 import ios.silv.term_ui.rememberNavLayoutDraggableState
 import ios.silv.term_ui.rememberScaffoldState
 import shop.terminal.api.models.product.Product
-import kotlin.Unit
 
 fun EntryProviderBuilder<Screen>.mainScreenEntry(
     sharedTransitionScope: SharedTransitionScope,
 ) {
     entry<Home> {
-        val backStack = LocalBackStack.current
         val events = rememberEventFlow<MainEvent>()
         val state = mainPresenter(events)
 
-        AnimatedVisibility(true) {
-            rememberScaffoldState(
-                animatedVisibilityScope = this@AnimatedVisibility,
-                sharedTransitionScope = sharedTransitionScope,
-            ).PersistentScaffold(
-                topBar = {
-                    PoppableDestinationTopAppBar(
-                        title = {
-                            TerminalTitle()
-                        },
-                        onBackPressed = { backStack.pop() }
-                    )
+        rememberScaffoldState(
+            animatedVisibilityScope = LocalNavAnimatedContentScope.current,
+            sharedTransitionScope = sharedTransitionScope,
+        ).PersistentScaffold(
+            topBar = {
+                ProductTopBar(state)
+            },
+            floatingActionButton = {
+                PersistentCustomFab {
+                    if (state.selectedProduct?.subscription == Product.Subscription.REQUIRED) {
+                        TerminalSectionButton(
+                            onClick = {},
+                            label = { TerminalSectionDefaults.Label("Subscribe") }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = null
+                            )
+                        }
+                    } else {
+                        CartEdit()
+                    }
                 }
-            ) { paddingValues ->
-                MainContent(
-                    state,
-                    events,
-                    paddingValues = paddingValues
-                )
             }
+        ) { paddingValues ->
+            MainContent(
+                state,
+                events,
+                paddingValues = paddingValues
+            )
         }
     }
 }
 
 @Composable
-fun ScaffoldState.PoppableDestinationTopAppBar(
-    modifier: Modifier = Modifier,
-    title: @Composable () -> Unit = {},
-    actions: @Composable RowScope.() -> Unit = {},
-    onBackPressed: () -> Unit,
+private fun ScaffoldState.ProductTopBar(
+    state: MainState,
+    modifier: Modifier = Modifier
 ) {
-    TopAppBar(
+    val backStack = LocalBackStack.current
+    PoppableDestinationTopAppBar(
         modifier = modifier,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-        ),
-        navigationIcon = {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                content = {
-                    FilledTonalIconButton(
-                        modifier = Modifier,
-                        onClick = onBackPressed,
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = null,
-                        )
-                    }
-                }
-            )
+        visible = backStack.canPop,
+        title = {
+            TerminalTitle()
         },
-        title = title,
-        actions = actions,
+        onBackPressed = { backStack.pop() },
+        actions = {
+            TerminalSectionButton(
+                onClick = {
+                    backStack.push(Cart)
+                },
+                label = {
+                    TerminalSectionDefaults.Label("Cart")
+                }
+            ) {
+                BadgedBox(
+                    badge = {
+                        Badge {
+                            Text("${state.cart.items.sumOf { it.quantity }}")
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        }
     )
 }
 
@@ -213,12 +207,14 @@ private fun MainContent(
                     if (selected != null) {
                         ProductDetails(
                             product = selected,
-                            qty = state.cart.items.fastFilter { it.id == selected.id }.size,
                             events = events,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            cartItem = state.cart.items.firstOrNull {
+                                it.productVariantId == selected.variants.first().id
+                            }
                         )
                     } else {
-                        EmptyProductScreen(state, events, navDragState, Modifier.fillMaxSize())
+                        EmptyProductScreen(state, navDragState, Modifier.fillMaxSize())
                     }
                 }
             }
@@ -338,11 +334,11 @@ private fun ProductNavItem(
 @Composable
 private fun ProductDetails(
     product: UiProduct,
-    qty: Int,
+    cartItem: UiCartItem?,
     events: EventFlow<MainEvent>,
     modifier: Modifier = Modifier,
 ) {
-    Box(Modifier.fillMaxSize()) {
+    SelectionContainer {
         Column(
             modifier
                 .fillMaxSize()
@@ -356,6 +352,7 @@ private fun ProductDetails(
             product.variants.fastForEach {
                 Column(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .clickable { variant = it }
                 ) {
                     Text(
@@ -392,7 +389,7 @@ private fun ProductDetails(
                 )
             } else {
                 QtyIndicator(
-                    qty = qty,
+                    qty = cartItem?.quantity?.toInt() ?: 0,
                     add = {
                         events.tryEmit(MainEvent.AddToCart(product, variant))
                     },
@@ -401,25 +398,12 @@ private fun ProductDetails(
                     }
                 )
             }
-        }
-
-        Box(
-            Modifier
-                .align(BottomEnd)
-                .padding(end = 12.dp)
-        ) {
-            if (product.subscription == Product.Subscription.REQUIRED) {
-                TerminalSectionButton(
-                    onClick = {},
-                    label = { TerminalSectionDefaults.Label("Subscribe") }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = null
-                    )
-                }
-            } else {
-                CartEdit()
+            if (BuildConfig.DEBUG) {
+                Text("$cartItem")
+                Spacer(Modifier.height(12.dp))
+                Text("$product")
+                Spacer(Modifier.height(12.dp))
+                Text("$variant")
             }
         }
     }
@@ -428,7 +412,6 @@ private fun ProductDetails(
 @Composable
 fun EmptyProductScreen(
     state: MainState,
-    events: EventFlow<MainEvent>,
     navDragState: NavLayoutDragState,
     modifier: Modifier = Modifier
 ) {
@@ -496,46 +479,10 @@ private fun SubscriptionIndicator(
     }
 }
 
-@Composable
-private fun QtyIndicator(
-    qty: Int,
-    add: () -> Unit,
-    dec: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        TextButton(
-            onClick = dec
-        ) {
-            Text(
-                "-",
-                style = LocalTextStyle.current.copy(
-                    color = LocalContentColor.current.copy(alpha = MutedAlpha)
-                )
-            )
-        }
-        Text("$qty")
-        TextButton(
-            onClick = add,
-        ) {
-            Text(
-                "+",
-                style = LocalTextStyle.current.copy(
-                    color = LocalContentColor.current.copy(alpha = MutedAlpha)
-                )
-            )
-        }
-    }
-}
 
 @Composable
 private fun CartEdit(
     modifier: Modifier = Modifier,
-    qty: Int = 0
 ) {
     Row(
         modifier,
@@ -568,6 +515,18 @@ private fun CartEdit(
 @Composable
 private fun PreviewMainScreen() {
     TdshopTheme {
+
+        val events = rememberEventFlow<MainEvent>()
+        var state by remember {
+            mutableStateOf(
+                MainState(
+                    loading = false,
+                    products = previewUiProducts,
+                    selectedProduct = null,
+                    cart = cartPreviewData
+                )
+            )
+        }
         AnimatedVisibility(true) {
             SharedTransitionLayout {
                 rememberScaffoldState(
@@ -575,25 +534,36 @@ private fun PreviewMainScreen() {
                     animatedVisibilityScope = this@AnimatedVisibility
                 ).PersistentScaffold(
                     topBar = {
-                        PoppableDestinationTopAppBar(
-                            title = {
-                                TerminalTitle()
-                            },
-                            onBackPressed = {}
-                        )
-                    }
+                        ProductTopBar(state)
+                    },
+                    floatingActionButton = {
+                        PersistentCustomFab {
+                            if (state.selectedProduct?.subscription == Product.Subscription.REQUIRED) {
+                                TerminalSectionButton(
+                                    onClick = {},
+                                    label = { TerminalSectionDefaults.Label("Subscribe") }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ShoppingCart,
+                                        contentDescription = null
+                                    )
+                                }
+                            } else {
+                                CartEdit()
+                            }
+                        }
+                    },
                 ) {
-                    val events = rememberEventFlow<MainEvent>()
-                    var selected by remember {
-                        mutableStateOf<UiProduct?>(null)
-                    }
-
                     LaunchedEffect(Unit) {
                         events.collect {
                             when (it) {
-                                MainEvent.Refresh -> {}
-                                is MainEvent.ViewProduct -> selected =
-                                    if (selected == it.product) null else it.product
+                                is MainEvent.ViewProduct -> state = state.copy(
+                                    selectedProduct = if (state.selectedProduct == it.product) {
+                                        null
+                                    } else {
+                                        it.product
+                                    }
+                                )
 
                                 else -> Unit
                             }
@@ -601,12 +571,7 @@ private fun PreviewMainScreen() {
                     }
 
                     MainContent(
-                        state = MainState(
-                            loading = false,
-                            products = previewUiProducts,
-                            selectedProduct = selected,
-                            cart = UiCart()
-                        ),
+                        state = state,
                         events = events,
                         paddingValues = it
                     )

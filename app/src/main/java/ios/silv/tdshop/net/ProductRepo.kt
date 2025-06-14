@@ -2,6 +2,7 @@ package ios.silv.tdshop.net
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import ios.silv.tdshop.di.AppScope
 import ios.silv.tdshop.types.UiProduct
 import ios.silv.tdshop.ui.compose.SafeLaunchedEffect
 import ios.silv.tdshop.ui.compose.safeCollectAsState
@@ -13,6 +14,7 @@ import logcat.logcat
 import me.tatarka.inject.annotations.Inject
 import shop.terminal.api.errors.TerminalInvalidDataException
 
+@AppScope
 @Inject
 class ProductRepo(
     private val shopClient: ShopClient
@@ -29,6 +31,7 @@ class ProductRepo(
             .also { loadingFlow.value = false }
             .getOrThrow()
             .map(::UiProduct)
+            .also { logcat { "refreshed products $it" } }
     }
 
 

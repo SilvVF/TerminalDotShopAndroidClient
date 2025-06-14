@@ -2,6 +2,7 @@ package ios.silv.tdshop.net
 
 import ios.silv.tdshop.BuildConfig
 import ios.silv.tdshop.EncryptedSettingsStore
+import ios.silv.tdshop.di.AppScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -22,7 +23,7 @@ import shop.terminal.api.models.cart.CartSetItemParams
 import shop.terminal.api.models.cart.CartSetItemResponse
 import shop.terminal.api.models.product.Product
 
-
+@AppScope
 class ShopClient(
     private val store: EncryptedSettingsStore,
     private val ioDispatcher: CoroutineDispatcher

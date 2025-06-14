@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.github.osipxd.security.crypto.encryptedDataStore
 import io.github.osipxd.security.crypto.encryptedPreferencesDataStore
+import ios.silv.tdshop.di.AppScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,12 +47,15 @@ object Keys {
     val TOKEN = stringPreferencesKey("token")
 }
 
+@AppScope
 class EncryptedSettingsStore(dataStore: DataStore<Preferences>): SettingsStoreImpl(dataStore) {
     val tokenFlow by preferenceStateFlow(
         Keys.TOKEN,
         if (BuildConfig.DEBUG) BuildConfig.testKey else ""
     )
 }
+
+@AppScope
 class SettingsStore(dataStore: DataStore<Preferences>): SettingsStoreImpl(dataStore) {
 
 }

@@ -13,6 +13,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
+import logcat.asLog
+import logcat.logcat
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -37,7 +39,7 @@ interface ComposeEffectErrorHandler {
 val LocalComposeEffectErrorHandler = staticCompositionLocalOf<ComposeEffectErrorHandler> {
     object : ComposeEffectErrorHandler {
         override suspend fun emit(throwable: Throwable) {
-            throwable.printStackTrace()
+            logcat { throwable.asLog() }
         }
     }
 }
@@ -50,7 +52,7 @@ fun SafeLaunchedEffect(key: Any?, block: suspend CoroutineScope.() -> Unit) {
             block()
         } catch (e: Exception) {
             ensureActive()
-            e.printStackTrace()
+            logcat { e.asLog() }
             composeEffectErrorHandler.emit(e)
         }
     }
@@ -75,6 +77,7 @@ fun <T : R, R> Flow<T>.safeCollectAsState(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
+            logcat { e.asLog() }
             composeEffectErrorHandler.emit(e)
         }
     }

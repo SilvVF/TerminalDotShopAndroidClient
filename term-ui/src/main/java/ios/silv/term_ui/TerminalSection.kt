@@ -79,7 +79,7 @@ private class TerminalLayoutMeasurePolicy(
         val contentPlaceable = contentMeasurable.measure(
             relaxedConstraints.copy(
                 maxHeight = (constraints.maxHeight - labelPlaceable.height - labelHalfHeight)
-                    .coerceAtLeast(0)
+                    .coerceIn(0..Constraints.Infinity)
             )
         )
 

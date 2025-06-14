@@ -4,6 +4,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.mutableStateListOf
+import ios.silv.tdshop.di.AppScope
 import java.util.UUID
 
 data class UserMessage(
@@ -14,6 +15,7 @@ data class UserMessage(
     val userMessageResult: UserMessageResult? = null,
 )
 
+@AppScope
 class UserMessageStateHolderImpl : UserMessageStateHolder {
 
     private val _messages = mutableStateListOf<UserMessage>()

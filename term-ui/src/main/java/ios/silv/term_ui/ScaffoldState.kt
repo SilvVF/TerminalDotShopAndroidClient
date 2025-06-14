@@ -9,10 +9,13 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateBounds
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -29,12 +32,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +53,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -64,6 +74,42 @@ class ScaffoldState internal constructor(
     internal val canShowNavRail get() = isMediumScreenWidthOrWider.value
             // implementation omitted && isAtDeviceEdge
 
+}
+
+@Composable
+fun ScaffoldState.PoppableDestinationTopAppBar(
+    modifier: Modifier = Modifier,
+    visible: Boolean = true,
+    title: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    onBackPressed: () -> Unit,
+) {
+    TopAppBar(
+        modifier = modifier,
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+        ),
+        navigationIcon = {
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                content = {
+                    IconButton(
+                        modifier = Modifier,
+                        onClick = onBackPressed,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = null,
+                        )
+                    }
+                }
+            )
+        },
+        title = title,
+        actions = actions,
+    )
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -199,6 +245,35 @@ fun ScaffoldState.PersistentNavigationBar(
         exit = exitTransition,
         content = {
             NavigationBar {
+                content()
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun ScaffoldState.PersistentCustomFab(
+    modifier: Modifier = Modifier,
+    enterTransition: EnterTransition = slideInVertically(initialOffsetY = { it }),
+    exitTransition: ExitTransition = slideOutVertically(targetOffsetY = { it }),
+    visible: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    AnimatedVisibility(
+        modifier = modifier
+            .sharedBounds(
+                sharedContentState = rememberSharedContentState(
+                    FabSharedElementKey
+                ),
+                animatedVisibilityScope = this,
+                zIndexInOverlay = BottomNavSharedElementZIndex,
+            ),
+        visible = visible == true,
+        enter = enterTransition,
+        exit = exitTransition,
+        content = {
+            Box(Modifier.animateContentSize()) {
                 content()
             }
         }

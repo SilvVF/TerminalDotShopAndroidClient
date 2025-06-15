@@ -1,5 +1,9 @@
 package ios.silv.tdshop.ui.ship
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -21,33 +25,50 @@ fun EntryProviderBuilder<Screen>.shipScreenEntry(
     sharedTransitionScope: SharedTransitionScope,
 ) {
     entry<Ship> {
-        val backStack = LocalBackStack.current
         val state = shipPresenter()
 
-        rememberScaffoldState(
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = LocalNavAnimatedContentScope.current
-        ).PersistentScaffold(
-            topBar = {
-                PoppableDestinationTopAppBar(
-                    visible = backStack.canPop,
-                    onBackPressed = { backStack.pop() },
-                    title = { TerminalTitle(text = "Ship") },
-                )
-            }
-        ) { paddingValues ->
-           ShipContent(Modifier.fillMaxSize())
-        }
+        ShipContent(
+            sharedTransitionScope,
+            LocalNavAnimatedContentScope.current,
+            state
+        )
     }
 }
 
 @Composable
-private fun ShipContent(modifier: Modifier = Modifier) {
+private fun ShipContent(
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope,
+    state: ShipState,
+) {
+    val backStack = LocalBackStack.current
 
+    rememberScaffoldState(
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedContentScope
+    ).PersistentScaffold(
+        topBar = {
+            PoppableDestinationTopAppBar(
+                visible = backStack.canPop,
+                onBackPressed = { backStack.pop() },
+                title = { TerminalTitle(text = "Ship") },
+            )
+        }
+    ) { paddingValues ->
+
+    }
 }
 
 @Preview
 @Composable
 private fun PreviewShipContent() {
-    ShipContent()
+    SharedTransitionLayout {
+        AnimatedContent(true) { _ ->
+            ShipContent(
+                sharedTransitionScope = this@SharedTransitionLayout,
+                animatedContentScope = this@AnimatedContent,
+                state = ShipState("")
+            )
+        }
+    }
 }

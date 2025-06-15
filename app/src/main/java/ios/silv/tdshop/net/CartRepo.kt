@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import logcat.asLog
 import logcat.logcat
 import me.tatarka.inject.annotations.Inject
@@ -51,19 +53,23 @@ class CartRepo(
             }
     }
 
+    private val addMutex = Mutex()
+
     @Throws(TerminalInvalidDataException::class)
     suspend fun addItem(params: CartSetItemParams.Builder.() -> Unit) {
         logcat { "adding to cart" }
-        shopClient.addItemToCart(params)
-            .onSuccess { response ->
-                logcat { "added to cart $response" }
-                cartFlow.value  = response.data().let(::UiCart)
-                logcat { "mapped cart to ${cartFlow.value}" }
-            }
-            .onFailure {
-                logcat { "failed to add to cart: " + it.asLog() }
-            }
-            .getOrThrow()
+        addMutex.withLock {
+            shopClient.addItemToCart(params)
+                .onSuccess { response ->
+                    logcat { "added to cart $response" }
+                    cartFlow.value  = response.data().let(::UiCart)
+                    logcat { "mapped cart to ${cartFlow.value}" }
+                }
+                .onFailure {
+                    logcat { "failed to add to cart: " + it.asLog() }
+                }
+                .getOrThrow()
+        }
     }
 
     fun cartAsFlow(): Flow<UiCart> {

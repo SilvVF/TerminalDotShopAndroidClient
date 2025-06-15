@@ -6,6 +6,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
@@ -39,32 +43,40 @@ class MainActivity : ComponentActivity() {
 
             val backStack = rememberStateStack<Screen>(Home, minSize = 1)
 
-            SharedTransitionLayout {
-                CompositionLocalProvider(
-                    LocalBackStack provides backStack,
-                    LocalSharedTransitionScope provides this@SharedTransitionLayout,
-                ) {
-                    TdshopTheme {
-                        NavDisplay(
-                            backStack = backStack.items,
-                            entryDecorators = listOf(
-                                // Add the default decorators for managing scenes and saving state
-                                rememberSceneSetupNavEntryDecorator(),
-                                rememberSavedStateNavEntryDecorator(),
-                            ),
-                            onBack = { backStack.pop() },
-                            entryProvider = entryProvider {
-                                mainScreenEntry(
-                                    sharedTransitionScope = this@SharedTransitionLayout
-                                )
-                                cartScreenEntry(
-                                    sharedTransitionScope = this@SharedTransitionLayout
-                                )
-                                shipScreenEntry(
-                                    sharedTransitionScope = this@SharedTransitionLayout
-                                )
-                            }
-                        )
+            TdshopTheme {
+                Surface {
+                    SharedTransitionLayout {
+                        CompositionLocalProvider(
+                            LocalBackStack provides backStack,
+                            LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                        ) {
+                            NavDisplay(
+                                backStack = backStack.items,
+                                entryDecorators = listOf(
+                                    // Add the default decorators for managing scenes and saving state
+                                    rememberSceneSetupNavEntryDecorator(),
+                                    rememberSavedStateNavEntryDecorator(),
+                                ),
+                                onBack = { backStack.pop() },
+                                transitionSpec = {
+                                    fadeIn() togetherWith fadeOut()
+                                },
+                                predictivePopTransitionSpec = {
+                                    fadeIn() togetherWith fadeOut()
+                                },
+                                entryProvider = entryProvider {
+                                    mainScreenEntry(
+                                        sharedTransitionScope = this@SharedTransitionLayout
+                                    )
+                                    cartScreenEntry(
+                                        sharedTransitionScope = this@SharedTransitionLayout
+                                    )
+                                    shipScreenEntry(
+                                        sharedTransitionScope = this@SharedTransitionLayout
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }

@@ -1,6 +1,7 @@
 package ios.silv.tdshop.ui.home
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
@@ -97,37 +98,52 @@ fun EntryProviderBuilder<Screen>.mainScreenEntry(
         val events = rememberEventFlow<MainEvent>()
         val state = mainPresenter(events)
 
-        rememberScaffoldState(
-            animatedVisibilityScope = LocalNavAnimatedContentScope.current,
-            sharedTransitionScope = sharedTransitionScope,
-        ).PersistentScaffold(
-            topBar = {
-                ProductTopBar(state)
-            },
-            floatingActionButton = {
-                PersistentCustomFab {
-                    if (state.selectedProduct?.subscription == Product.Subscription.REQUIRED) {
-                        TerminalSectionButton(
-                            onClick = {},
-                            label = { TerminalSectionDefaults.Label("Subscribe") }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = null
-                            )
-                        }
-                    } else {
-                        CartEdit()
+        MainScaffold(
+            LocalNavAnimatedContentScope.current,
+            sharedTransitionScope,
+            state,
+            events
+        )
+    }
+}
+
+@Composable
+private fun MainScaffold(
+    animatedContentScope: AnimatedContentScope,
+    sharedTransitionScope: SharedTransitionScope,
+    state: MainState,
+    events: EventFlow<MainEvent>,
+) {
+    rememberScaffoldState(
+        animatedVisibilityScope = animatedContentScope,
+        sharedTransitionScope = sharedTransitionScope,
+    ).PersistentScaffold(
+        topBar = {
+            ProductTopBar(state)
+        },
+        floatingActionButton = {
+            PersistentCustomFab {
+                if (state.selectedProduct?.subscription == Product.Subscription.REQUIRED) {
+                    TerminalSectionButton(
+                        onClick = {},
+                        label = { TerminalSectionDefaults.Label("Subscribe") }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = null
+                        )
                     }
+                } else {
+                    CartEdit()
                 }
             }
-        ) { paddingValues ->
-            MainContent(
-                state,
-                events,
-                paddingValues = paddingValues
-            )
         }
+    ) { paddingValues ->
+        MainContent(
+            state,
+            events,
+            paddingValues = paddingValues
+        )
     }
 }
 
@@ -289,7 +305,8 @@ private fun ProductNavLabel(
                 TextDecoration.Underline
             } else {
                 TextDecoration.None
-            }
+            },
+            color = LocalContentColor.current
         ),
         maxLines = 1,
         modifier = modifier
@@ -391,10 +408,20 @@ private fun ProductDetails(
                 QtyIndicator(
                     qty = cartItem?.quantity?.toInt() ?: 0,
                     add = {
-                        events.tryEmit(MainEvent.AddToCart(product, variant))
+                        events.tryEmit(
+                            MainEvent.AddToCart(
+                                variant.id,
+                                (cartItem?.quantity?.toInt() ?: 0) + 1
+                            )
+                        )
                     },
                     dec = {
-                        events.tryEmit(MainEvent.RemoveFromCart(product, variant))
+                        events.tryEmit(
+                            MainEvent.AddToCart(
+                                variant.id,
+                                (cartItem?.quantity?.toInt() ?: 0) - 1
+                            )
+                        )
                     }
                 )
             }
@@ -527,55 +554,14 @@ private fun PreviewMainScreen() {
                 )
             )
         }
-        AnimatedVisibility(true) {
+        AnimatedContent(true) { _ ->
             SharedTransitionLayout {
-                rememberScaffoldState(
-                    sharedTransitionScope = this,
-                    animatedVisibilityScope = this@AnimatedVisibility
-                ).PersistentScaffold(
-                    topBar = {
-                        ProductTopBar(state)
-                    },
-                    floatingActionButton = {
-                        PersistentCustomFab {
-                            if (state.selectedProduct?.subscription == Product.Subscription.REQUIRED) {
-                                TerminalSectionButton(
-                                    onClick = {},
-                                    label = { TerminalSectionDefaults.Label("Subscribe") }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ShoppingCart,
-                                        contentDescription = null
-                                    )
-                                }
-                            } else {
-                                CartEdit()
-                            }
-                        }
-                    },
-                ) {
-                    LaunchedEffect(Unit) {
-                        events.collect {
-                            when (it) {
-                                is MainEvent.ViewProduct -> state = state.copy(
-                                    selectedProduct = if (state.selectedProduct == it.product) {
-                                        null
-                                    } else {
-                                        it.product
-                                    }
-                                )
-
-                                else -> Unit
-                            }
-                        }
-                    }
-
-                    MainContent(
-                        state = state,
-                        events = events,
-                        paddingValues = it
-                    )
-                }
+                MainScaffold(
+                    this@AnimatedContent,
+                    this@SharedTransitionLayout,
+                    state = state,
+                    events = events
+                )
             }
         }
     }

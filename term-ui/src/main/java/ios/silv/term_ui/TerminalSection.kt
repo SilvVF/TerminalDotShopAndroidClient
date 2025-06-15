@@ -164,6 +164,7 @@ fun TerminalSection(
     modifier: Modifier = Modifier,
     label: @Composable () -> Unit,
     borderColor: Color = MaterialTheme.colorScheme.primary,
+    containerColor: Color = Color.Transparent,
     labelOffset: DpOffset = DpOffset(12.dp, 0.dp),
     content: @Composable () -> Unit
 ) {
@@ -176,6 +177,7 @@ fun TerminalSection(
                 Modifier
                     .fillMaxSize()
                     .border(1.dp, borderColor)
+                    .background(containerColor)
             )
         },
         measurePolicy = remember(labelOffset) {

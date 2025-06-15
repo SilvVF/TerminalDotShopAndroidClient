@@ -20,8 +20,7 @@ import me.tatarka.inject.annotations.Inject
 sealed interface MainEvent {
     data object Refresh : MainEvent
     data class ViewProduct(val product: UiProduct) : MainEvent
-    data class AddToCart(val product: UiProduct, val variant: UiProduct.Variant) : MainEvent
-    data class RemoveFromCart(val product: UiProduct, val variant: UiProduct.Variant) : MainEvent
+    data class AddToCart(val variantId: String, val qty: Int) : MainEvent
     data class Subscribe(val product: UiProduct, val variant: UiProduct.Variant) : MainEvent
 }
 
@@ -52,7 +51,7 @@ fun mainPresenterProvider(
     @Assisted eventFlow: EventFlow<MainEvent>,
 ): MainState = providePresenterDefaults { userMessageHolder, backstack ->
 
-    val cart by rememberUpdatedState(cartRepo.cart())
+    val cart = cartRepo.cart()
 
     val loading = productRepo.loading()
     val products = productRepo.products()
@@ -64,28 +63,9 @@ fun mainPresenterProvider(
             MainEvent.Refresh -> productRepo.refresh()
             is MainEvent.ViewProduct -> selectedProduct = event.product
             is MainEvent.AddToCart -> cartRepo.addItem {
-                productVariantId(event.variant.id)
-                quantity(
-                    cart.items.count { item ->
-                        item.matches(event.product.id, event.variant)
-                    } + 1L
-                )
+                productVariantId(event.variantId)
+                quantity(event.qty.toLong())
             }
-
-            is MainEvent.RemoveFromCart -> {
-                val count =
-                    cart.items.count { item ->
-                        item.matches(event.product.id, event.variant)
-                    } - 1L
-                if (count < 0) {
-                    return@EventEffect
-                }
-                cartRepo.addItem {
-                    productVariantId(event.variant.id)
-                    quantity(count)
-                }
-            }
-
             is MainEvent.Subscribe -> TODO()
         }
     }

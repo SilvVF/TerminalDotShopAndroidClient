@@ -2,6 +2,7 @@ package ios.silv.tdshop.ui.cart
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
@@ -13,6 +14,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,19 +35,26 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.data.Group
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.window.Dialog
 import androidx.navigation3.runtime.EntryProviderBuilder
 import androidx.navigation3.runtime.entry
@@ -76,44 +85,68 @@ fun EntryProviderBuilder<Screen>.cartScreenEntry(
     sharedTransitionScope: SharedTransitionScope,
 ) {
     entry<Cart> {
-        val backStack = LocalBackStack.current
         val state = cartPresenter()
 
-        rememberScaffoldState(
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = LocalNavAnimatedContentScope.current
-        ).PersistentScaffold(
-            topBar = {
-                PoppableDestinationTopAppBar(
-                    visible = backStack.canPop,
-                    onBackPressed = { backStack.pop() },
-                    title = { TerminalTitle(text = "Cart") },
-                    actions = {
-                        Text("$${state.cart.subtotal / 100}")
-                    },
-                )
-            },
-            floatingActionButton = {
-                PersistentCustomFab {
-                    TerminalSectionButton(
+        CartScaffold(
+            sharedTransitionScope,
+            LocalNavAnimatedContentScope.current,
+            state
+        )
+    }
+}
+
+@Composable
+private fun CartScaffold(
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope,
+    state: CartState,
+) {
+    val backStack = LocalBackStack.current
+    rememberScaffoldState(
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedContentScope
+    ).PersistentScaffold(
+        topBar = {
+            PoppableDestinationTopAppBar(
+                visible = backStack.canPop,
+                onBackPressed = { backStack.pop() },
+                title = { TerminalTitle(text = "Cart") },
+                actions = {
+                    TerminalSection(
                         label = {
-                            TerminalSectionDefaults.Label("Ship")
-                        },
-                        onClick = { backStack.push(Ship) }
+                            TerminalSectionDefaults.Label(
+                                "total",
+                                color = MaterialTheme.colorScheme.background,
+                            )
+                        }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                        )
+                        Text("$${state.cart.subtotal / 100}")
                     }
+                },
+            )
+        },
+        floatingActionButton = {
+            PersistentCustomFab {
+                TerminalSectionButton(
+                    label = {
+                        TerminalSectionDefaults.Label("Ship")
+                    },
+                    onClick = { backStack.push(Ship) }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                    )
                 }
             }
-        ) { paddingValues ->
-            CartContent(
-                state = state,
-                modifier = Modifier.fillMaxSize()
-            )
         }
+    ) { paddingValues ->
+        CartContent(
+            state = state,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        )
     }
 }
 
@@ -173,61 +206,92 @@ private fun SharedTransitionScope.ProductDetails(
     modifier: Modifier = Modifier,
 ) {
     AnimatedContent(
-        modifier = modifier,
-        targetState = state.selectedItem,
+        modifier = modifier.fillMaxSize(),
         transitionSpec = {
             fadeIn() togetherWith fadeOut()
         },
+        // key by only these two items the cart quantity changing would cause this state to change otherwise
+        targetState = state.selectedItem,
+        contentKey = { item -> item?.first?.id },
         label = "ProductDetails"
-    ) { selected ->
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            if (selected != null) {
-                val (item, product, variant) = selected
+    ) { cartItem ->
+        if (cartItem != null) {
+            val (item, product, variant) = cartItem
+
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable {
+                        .clickable(remember(::MutableInteractionSource), null) {
                             state.events(CartEvent.ViewProduct(null))
                         }
                 )
-                Column(
+                TerminalSection(
+                    label = {
+                        TerminalSectionDefaults.Label(
+                            product.name,
+                            color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
+                        .fillMaxHeight(0.5f)
                         .sharedBounds(
                             sharedContentState = rememberSharedContentState(key = variant.id),
                             animatedVisibilityScope = this@AnimatedContent,
                             clipInOverlayDuringTransition = OverlayClip(RectangleShape)
                         )
                         .clip(RectangleShape)
-                        .clickable{}
+                        .clickable(remember(::MutableInteractionSource), null) {}
                 ) {
-                    CartListItem(
-                        item,
-                        product,
-                        variant,
-                        state.events,
+                    Column(
                         Modifier
-                            .background(
-                                MaterialTheme.colorScheme.background,
-                                RectangleShape
+                            .fillMaxSize()
+                            .padding(12.dp)
+                    ) {
+                        Text(product.name, style = MaterialTheme.typography.titleMedium)
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                variant.name,
+                                color = LocalContentColor.current.copy(
+                                    alpha = MutedAlpha
+                                )
                             )
-                            .fillMaxHeight(0.5f)
-                            .fillMaxWidth()
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(key = variant.id),
-                                animatedVisibilityScope = this@AnimatedContent,
+                            Text(
+                                "$${item.subtotal / 100}",
+                                color = product.color ?: MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(vertical = 12.dp)
                             )
-                    )
+                        }
+                        Text(
+                            product.description,
+                            color = LocalContentColor.current.copy(
+                                alpha = MutedAlpha
+                            )
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        QtyIndicator(
+                            qty = item.quantity.toInt(),
+                            add = {
+                                state.events(CartEvent.IncQty(item))
+                            },
+                            dec = {
+                                state.events(CartEvent.DecQty(item))
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun CartListItem(
@@ -244,8 +308,8 @@ fun CartListItem(
         modifier = modifier
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.End
         ) {
             Column(
@@ -255,7 +319,8 @@ fun CartListItem(
                     .padding(start = 6.dp),
                 horizontalAlignment = Alignment.Start
             ) {
-                val productColor = product.color ?: MaterialTheme.colorScheme.primary
+                val productColor =
+                    product.color ?: MaterialTheme.colorScheme.primary
                 Text(
                     product.name, style = MaterialTheme.typography.titleMedium.copy(
                         color = productColor
@@ -275,7 +340,10 @@ fun CartListItem(
             Column(
                 horizontalAlignment = Alignment.End,
             ) {
-                Text("$${item.subtotal / 100}", modifier = Modifier.padding(end = 12.dp))
+                Text(
+                    "$${item.subtotal / 100}",
+                    modifier = Modifier.padding(end = 12.dp)
+                )
                 QtyIndicator(
                     qty = item.quantity.toInt(),
                     add = {
@@ -303,6 +371,21 @@ private fun PreviewCartContent() {
                     cart = cartPreviewData,
                     products = previewUiProducts,
                     selectedItem = null,
+                    groupedItems = run {
+                        val variantIdToProducts = previewUiProducts
+                            .map { p -> p.variants.map { v -> p to v } }
+                            .flatten()
+                            .groupBy { it.second.id }
+                            .mapValues { it.value.first() }
+
+                        cartPreviewData.items.mapNotNull { item ->
+                            val (product, variant) = variantIdToProducts[item.productVariantId]
+                                ?: return@mapNotNull null
+                            Triple(
+                                item, product, variant
+                            )
+                        }
+                    },
                     events = events::tryEmit
                 )
             )
@@ -319,33 +402,12 @@ private fun PreviewCartContent() {
         }
 
         SharedTransitionLayout {
-            AnimatedVisibility(true) {
-                rememberScaffoldState(
+            AnimatedContent(true) {_ ->
+                CartScaffold(
                     sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedVisibilityScope = this@AnimatedVisibility
-                ).PersistentScaffold(
-                    topBar = {
-                        PoppableDestinationTopAppBar(
-                            visible = backStack.canPop,
-                            onBackPressed = { backStack.pop() },
-                            title = { TerminalTitle(text = "Cart") },
-                            actions = {
-                                TerminalSection(
-                                    label = { TerminalSectionDefaults.Label("total") }
-                                ) {
-                                    Text("$${state.cart.subtotal / 100}")
-                                }
-                            }
-                        )
-                    }
-                ) { paddingValues ->
-                    CartContent(
-                        state = state,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    )
-                }
+                    animatedContentScope = this@AnimatedContent,
+                    state = state
+                )
             }
         }
     }

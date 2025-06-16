@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.github.osipxd.security.crypto.encryptedDataStore
 import io.github.osipxd.security.crypto.encryptedPreferencesDataStore
@@ -57,7 +58,6 @@ class EncryptedSettingsStore(dataStore: DataStore<Preferences>): SettingsStoreIm
 
 @AppScope
 class SettingsStore(dataStore: DataStore<Preferences>): SettingsStoreImpl(dataStore) {
-
 }
 
 abstract class SettingsStoreImpl(

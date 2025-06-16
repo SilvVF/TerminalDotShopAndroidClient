@@ -15,8 +15,11 @@ import kotlinx.coroutines.withContext
 import logcat.logcat
 import shop.terminal.api.client.TerminalClientAsync
 import shop.terminal.api.client.okhttp.TerminalOkHttpClientAsync
+import shop.terminal.api.models.address.Address
+import shop.terminal.api.models.address.AddressGetParams
 import shop.terminal.api.models.cart.Cart
 import shop.terminal.api.models.cart.CartClearResponse
+import shop.terminal.api.models.cart.CartGetParams
 import shop.terminal.api.models.cart.CartSetAddressParams
 import shop.terminal.api.models.cart.CartSetAddressResponse
 import shop.terminal.api.models.cart.CartSetItemParams
@@ -62,7 +65,7 @@ class ShopClient(
         }
     }
 
-    suspend fun setAddress(params: CartSetAddressParams.Builder.() -> Unit): Result<CartSetAddressResponse> {
+    suspend fun setAddress(params: CartSetAddressParams.Builder.() -> Unit): Result<CartSetAddressResponse.Data> {
         return runCatching {
             withContext(ioDispatcher) {
                 client.cart().setAddress(
@@ -72,6 +75,16 @@ class ShopClient(
                         .build()
                 )
             }
+                .data()
+        }
+    }
+
+    suspend fun getAddresses(): Result<List<Address>> {
+        return runCatching {
+            withContext(ioDispatcher) {
+                client.address().list()
+            }
+                .data()
         }
     }
 

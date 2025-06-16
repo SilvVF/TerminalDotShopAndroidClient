@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
@@ -253,6 +255,7 @@ private fun SharedTransitionScope.ProductDetails(
                         Modifier
                             .fillMaxSize()
                             .padding(12.dp)
+                            .verticalScroll(rememberScrollState( ))
                     ) {
                         Text(product.name, style = MaterialTheme.typography.titleMedium)
                         Column(
@@ -277,15 +280,21 @@ private fun SharedTransitionScope.ProductDetails(
                             )
                         )
                         Spacer(Modifier.height(12.dp))
-                        QtyIndicator(
-                            qty = item.quantity.toInt(),
-                            add = {
-                                state.events(CartEvent.IncQty(item))
-                            },
-                            dec = {
-                                state.events(CartEvent.DecQty(item))
-                            }
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            QtyIndicator(
+                                qty = item.quantity.toInt(),
+                                add = {
+                                    state.events(CartEvent.IncQty(item))
+                                },
+                                dec = {
+                                    state.events(CartEvent.DecQty(item))
+                                }
+                            )
+                            Text(
+                                "$${item.subtotal / 100}",
+                                modifier = Modifier.padding(end = 12.dp)
+                            )
+                        }
                     }
                 }
             }

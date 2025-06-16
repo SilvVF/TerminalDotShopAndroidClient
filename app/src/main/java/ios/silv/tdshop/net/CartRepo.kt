@@ -59,16 +59,9 @@ class CartRepo(
     suspend fun addItem(params: CartSetItemParams.Builder.() -> Unit) {
         logcat { "adding to cart" }
         addMutex.withLock {
-            shopClient.addItemToCart(params)
-                .onSuccess { response ->
-                    logcat { "added to cart $response" }
-                    cartFlow.value  = response.data().let(::UiCart)
-                    logcat { "mapped cart to ${cartFlow.value}" }
-                }
-                .onFailure {
-                    logcat { "failed to add to cart: " + it.asLog() }
-                }
-                .getOrThrow()
+            val response = shopClient.addItemToCart(params).getOrThrow()
+            cartFlow.value  = response.data().let(::UiCart)
+            logcat { "mapped cart to ${cartFlow.value}" }
         }
     }
 

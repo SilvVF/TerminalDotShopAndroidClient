@@ -1,5 +1,6 @@
 package ios.silv.term_ui
 
+import androidx.compose.animation.core.InfiniteTransition
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -36,16 +37,19 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 
 @Composable
+fun InfiniteTransition.animateBlinkAlpha() = animateFloat(
+    initialValue = 1f,
+    targetValue = 0f,
+    animationSpec = infiniteRepeatable(
+        tween(durationMillis = 500, delayMillis = 100),
+        repeatMode = RepeatMode.Reverse
+    )
+)
+
+@Composable
 fun TerminalTitle(modifier: Modifier = Modifier, text: String = "Terminal") {
     val transition = rememberInfiniteTransition()
-    val alphaTransition by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            tween(durationMillis = 500, delayMillis = 100),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
+    val alphaTransition by transition.animateBlinkAlpha()
     val textStyle = LocalTextStyle.current
     val textMeasurer = rememberTextMeasurer()
 

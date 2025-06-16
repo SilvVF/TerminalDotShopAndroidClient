@@ -20,6 +20,11 @@ data object Cart: Screen {
 
 
 @Serializable
+data object AddShipDest: Screen {
+    private fun readResolve(): Any = AddShipDest
+}
+
+@Serializable
 data object Ship: Screen {
-    private fun readResolve(): Any = Cart
+    private fun readResolve(): Any = Ship
 }

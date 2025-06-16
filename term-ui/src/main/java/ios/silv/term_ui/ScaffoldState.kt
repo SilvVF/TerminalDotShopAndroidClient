@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -41,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -140,6 +142,7 @@ private fun isMediumScreenWidthOrWider(): State<Boolean> {
 @Composable
 fun ScaffoldState.PersistentScaffold(
     modifier: Modifier = Modifier,
+    contentWindowInsets: WindowInsets = ScaffoldDefaults.contentWindowInsets,
     topBar: @Composable ScaffoldState.() -> Unit = {},
     floatingActionButton: @Composable ScaffoldState.() -> Unit = {},
     navigationBar: @Composable ScaffoldState.() -> Unit = {},
@@ -151,6 +154,7 @@ fun ScaffoldState.PersistentScaffold(
         navigationRail = { navigationRail() },
         content = {
             Scaffold(
+                contentWindowInsets = contentWindowInsets,
                 modifier = modifier
                     .animateBounds(lookaheadScope = this),
                 topBar = {

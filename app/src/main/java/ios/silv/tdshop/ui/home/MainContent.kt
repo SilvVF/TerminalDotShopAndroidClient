@@ -71,6 +71,7 @@ import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
 import ios.silv.tdshop.ui.components.QtyIndicator
+import ios.silv.tdshop.ui.compose.EventEffect
 import ios.silv.tdshop.ui.compose.EventFlow
 import ios.silv.tdshop.ui.compose.MutedAlpha
 import ios.silv.tdshop.ui.compose.isLight
@@ -554,6 +555,18 @@ private fun PreviewMainScreen() {
                 )
             )
         }
+
+        EventEffect(events) {
+            when (it) {
+                is MainEvent.ViewProduct -> {
+                    state = state.copy(
+                        selectedProduct = if (state.selectedProduct != null) null else it.product
+                    )
+                }
+                else -> Unit
+            }
+        }
+
         AnimatedContent(true) { _ ->
             SharedTransitionLayout {
                 MainScaffold(

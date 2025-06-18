@@ -2,16 +2,15 @@ package ios.silv.tdshop.net
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import ios.silv.tdshop.Keys
-import ios.silv.tdshop.SettingsStore
 import ios.silv.tdshop.di.AppScope
-import ios.silv.tdshop.types.UiCart
 import ios.silv.tdshop.ui.compose.SafeLaunchedEffect
 import ios.silv.tdshop.ui.compose.safeCollectAsState
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import me.tatarka.inject.annotations.Inject
 import shop.terminal.api.errors.TerminalInvalidDataException
 import shop.terminal.api.models.address.Address
+import shop.terminal.api.models.address.AddressCreateParams
 import shop.terminal.api.models.cart.CartSetAddressParams
 import kotlin.jvm.Throws
 
@@ -29,9 +28,24 @@ class ShipRepo(
             .getOrThrow()
     }
 
-    suspend fun setAddress(params: CartSetAddressParams.Builder.() -> Unit ) {
-        client.setAddress(params)
-            .onSuccess { refresh() }
+    suspend fun createAddress(params: AddressCreateParams.Builder.() -> Unit) {
+        client.createAddress(params).onSuccess { response ->
+
+            val created = client
+                .getAddress(response.data())
+                .getOrThrow()
+
+            addressesFlow.update { addresses ->
+                addresses?.let {
+                    val other = addresses.filter { address -> address.id() != created.id() }
+
+                    buildList {
+                        addAll(other)
+                        add(created)
+                    }
+                }
+            }
+        }
     }
 
     @Composable

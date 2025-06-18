@@ -1,72 +1,34 @@
 package ios.silv.tdshop.ui.ship
 
-import android.R
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.FirstBaseline
-import androidx.compose.ui.layout.LastBaseline
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsProperties.ImeAction
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.navigation3.runtime.EntryProviderBuilder
 import androidx.navigation3.runtime.entry
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
@@ -84,7 +46,6 @@ import ios.silv.term_ui.TerminalSectionButton
 import ios.silv.term_ui.TerminalSectionDefaults
 import ios.silv.term_ui.TerminalTextField
 import ios.silv.term_ui.TerminalTitle
-import ios.silv.term_ui.animateBlinkAlpha
 import ios.silv.term_ui.rememberScaffoldState
 
 
@@ -92,7 +53,7 @@ fun EntryProviderBuilder<Screen>.shipScreenEntry(
     sharedTransitionScope: SharedTransitionScope,
 ) {
     entry<Ship> {
-        val state = shipPresenter()
+        val state = shipSelectPresenter()
 
         SelectShippingDestination(
             LocalNavAnimatedContentScope.current,
@@ -122,8 +83,7 @@ private fun ShipContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedContentScope: AnimatedContentScope,
     fab: @Composable ScaffoldState.() -> Unit,
-    state: ShipState,
-    content: @Composable (state: ShipState) -> Unit,
+    content: @Composable () -> Unit,
 ) {
     val backStack = LocalBackStack.current
 
@@ -148,7 +108,7 @@ private fun ShipContent(
                 .padding(paddingValues)
                 .imePadding()
         ) {
-            content(state)
+            content()
         }
     }
 }
@@ -158,7 +118,7 @@ private fun ShipContent(
 private fun SelectShippingDestination(
     animatedContentScope: AnimatedContentScope,
     sharedTransitionScope: SharedTransitionScope,
-    state: ShipState,
+    state: ShipSelectState,
     modifier: Modifier = Modifier
 ) {
     val backStack = LocalBackStack.current
@@ -182,8 +142,7 @@ private fun SelectShippingDestination(
                     )
                 }
             }
-        },
-        state
+        }
     ) {
         Column(
             modifier = modifier
@@ -194,6 +153,9 @@ private fun SelectShippingDestination(
                 "select shipping address",
                 color = LocalContentColor.current.copy(alpha = MutedAlpha)
             )
+            state.addresses.fastForEach {
+                Text("$it")
+            }
             TerminalSectionButton(
                 onClick = {
                     backStack.push(AddShipDest)
@@ -235,95 +197,123 @@ private fun CreateShippingDestination(
     animatedContentScope: AnimatedContentScope,
     modifier: Modifier = Modifier
 ) {
-    val backStack = LocalBackStack.current
     ShipContent(
         sharedTransitionScope,
         animatedContentScope,
         fab = {
+            PersistentCustomFab {
+                TerminalSectionButton(
+                    label = {
+                        TerminalSectionDefaults.Label("Create")
+                    },
+                    onClick = {
+                        state.events(ShipEvent.CreateDest)
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null
+                    )
+                }
+            }
         },
-        state,
-    ) { _ ->
-        val state = remember { CreateShipDestStateHolder() }
+    ) {
         Column(
             modifier = modifier
                 .verticalScroll(rememberScrollState())
         ) {
             TerminalTextField(
-                text = state.name,
-                onValueChange = { state.name = it },
+                text = state.destState.name,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(name = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Name") },
-                error = state.nameErr,
+                error = state.destState.nameErr,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text
                 )
             )
             TerminalTextField(
-                text = state.street1,
-                onValueChange = { state.street1 = it },
+                text = state.destState.street1,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(street1 = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Street 1") },
-                error = state.street1Err,
+                error = state.destState.street1Err,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text
                 )
             )
             TerminalTextField(
-                text = state.street2,
-                onValueChange = { state.street2 = it },
+                text = state.destState.street2,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(street2 = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Street 2") },
-                error = state.street2Err,
+                error = state.destState.street2Err,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text
                 )
             )
             TerminalTextField(
-                text = state.city,
-                onValueChange = { state.city = it },
+                text = state.destState.city,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(city = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("City") },
-                error = state.cityErr,
+                error = state.destState.cityErr,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text
                 )
             )
             TerminalTextField(
-                text = state.state,
-                onValueChange = { state.state = it },
+                text = state.destState.state,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(state = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("State") },
-                error = state.stateErr,
+                error = state.destState.stateErr,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text
                 )
             )
             TerminalTextField(
-                text = state.country,
-                onValueChange = { state.country = it },
+                text = state.destState.country,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(country = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Country") },
-                error = state.countryErr,
+                error = state.destState.countryErr,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text
                 )
             )
             TerminalTextField(
-                text = state.phone,
-                onValueChange = { state.phone = it },
+                text = state.destState.phone,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(phone = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Phone") },
-                error = state.phoneErr,
+                error = state.destState.phoneErr,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Phone
                 )
             )
             TerminalTextField(
-                text = state.postalCode,
-                onValueChange = { state.postalCode = it },
+                text = state.destState.postalCode,
+                onValueChange = {
+                    state.events(ShipEvent.UpdateDest(state.destState.copy(postalCode = it)))
+                },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Postal code") },
-                error = state.postalCodeErr,
+                error = state.destState.postalCodeErr,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Number
                 )
@@ -337,11 +327,14 @@ private fun CreateShippingDestination(
 private fun PreviewViewShipContent() {
     TdshopTheme {
         SharedTransitionLayout {
-            AnimatedContent(true) { _ ->
+            AnimatedContent(true) { scope ->
+                scope
                 SelectShippingDestination(
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this@AnimatedContent,
-                    state = ShipState(""),
+                    state = ShipSelectState(
+                        emptyList()
+                    ){},
                 )
             }
         }
@@ -353,11 +346,15 @@ private fun PreviewViewShipContent() {
 private fun PreviewCreateShipContent() {
     TdshopTheme {
         SharedTransitionLayout {
-            AnimatedContent(true) { _ ->
+            AnimatedContent(true) { scope ->
+                scope
                 CreateShippingDestination(
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this@AnimatedContent,
-                    state = ShipState(""),
+                    state = ShipState(
+                        false,
+                        CreateDestinationState(),
+                    ){},
                 )
             }
         }

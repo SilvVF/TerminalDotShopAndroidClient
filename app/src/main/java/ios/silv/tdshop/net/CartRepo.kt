@@ -17,6 +17,7 @@ import logcat.logcat
 import me.tatarka.inject.annotations.Inject
 import shop.terminal.api.errors.TerminalInvalidDataException
 import shop.terminal.api.models.cart.CartClearResponse
+import shop.terminal.api.models.cart.CartSetAddressParams
 import shop.terminal.api.models.cart.CartSetItemParams
 import kotlin.jvm.Throws
 
@@ -51,6 +52,11 @@ class CartRepo(
                     CartClearResponse.Data.Value.OK -> refresh()
                 }
             }
+    }
+
+    suspend fun setAddress(params: CartSetAddressParams.Builder.() -> Unit ) {
+        shopClient.setCartAddress(params)
+            .onSuccess { refresh() }
     }
 
     private val addMutex = Mutex()

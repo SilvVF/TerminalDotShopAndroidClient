@@ -23,6 +23,7 @@ import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.rememberStateStack
 import ios.silv.tdshop.ui.cart.cartScreenEntry
 import ios.silv.tdshop.ui.home.mainScreenEntry
+import ios.silv.tdshop.ui.ship.addShipDestEntry
 import ios.silv.tdshop.ui.ship.shipScreenEntry
 import ios.silv.tdshop.ui.theme.TdshopTheme
 import ios.silv.term_ui.LocalSharedTransitionScope
@@ -72,6 +73,9 @@ class MainActivity : ComponentActivity() {
                                         sharedTransitionScope = this@SharedTransitionLayout
                                     )
                                     shipScreenEntry(
+                                        sharedTransitionScope = this@SharedTransitionLayout
+                                    )
+                                    addShipDestEntry(
                                         sharedTransitionScope = this@SharedTransitionLayout
                                     )
                                 }

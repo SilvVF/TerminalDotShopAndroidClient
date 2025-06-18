@@ -5,6 +5,7 @@ import ios.silv.tdshop.ui.cart.cartPresenterProvider
 import ios.silv.tdshop.ui.compose.UserMessageStateHolder
 import ios.silv.tdshop.ui.home.mainPresenterProvider
 import ios.silv.tdshop.ui.ship.shipPresenterProvider
+import ios.silv.tdshop.ui.ship.shipSelectPresenterProvider
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Scope
 
@@ -22,6 +23,8 @@ abstract class MainActivityComponent(
     abstract val userMessageStateHolder: UserMessageStateHolder
 
     abstract val shipPresenterProvider: shipPresenterProvider
+
+    abstract val shipSelectPresenterProvider: shipSelectPresenterProvider
 }
 
 @Scope

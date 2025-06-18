@@ -16,10 +16,11 @@ import logcat.logcat
 import shop.terminal.api.client.TerminalClientAsync
 import shop.terminal.api.client.okhttp.TerminalOkHttpClientAsync
 import shop.terminal.api.models.address.Address
+import shop.terminal.api.models.address.AddressCreateParams
+import shop.terminal.api.models.address.AddressCreateResponse
 import shop.terminal.api.models.address.AddressGetParams
 import shop.terminal.api.models.cart.Cart
 import shop.terminal.api.models.cart.CartClearResponse
-import shop.terminal.api.models.cart.CartGetParams
 import shop.terminal.api.models.cart.CartSetAddressParams
 import shop.terminal.api.models.cart.CartSetAddressResponse
 import shop.terminal.api.models.cart.CartSetItemParams
@@ -65,13 +66,38 @@ class ShopClient(
         }
     }
 
-    suspend fun setAddress(params: CartSetAddressParams.Builder.() -> Unit): Result<CartSetAddressResponse.Data> {
+    suspend fun createAddress(params: AddressCreateParams.Builder.() -> Unit): Result<AddressCreateResponse> {
+        return runCatching {
+            withContext(ioDispatcher) {
+                client.address().create(
+                    params = AddressCreateParams.builder()
+                        .apply(params)
+                        .build()
+                )
+            }
+        }
+    }
+
+    suspend fun setCartAddress(params: CartSetAddressParams.Builder.() -> Unit): Result<CartSetAddressResponse.Data> {
         return runCatching {
             withContext(ioDispatcher) {
                 client.cart().setAddress(
                     params = CartSetAddressParams
                         .builder()
                         .apply(params)
+                        .build()
+                )
+            }
+                .data()
+        }
+    }
+
+    suspend fun getAddress(id: String): Result<Address> {
+        return runCatching {
+            withContext(ioDispatcher) {
+                client.address().get(
+                    params = AddressGetParams.builder()
+                        .id(id)
                         .build()
                 )
             }

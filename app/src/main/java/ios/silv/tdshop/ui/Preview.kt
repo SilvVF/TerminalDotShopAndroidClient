@@ -7,6 +7,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import ios.silv.tdshop.ui.theme.TdshopTheme
 
 class PreviewScope(
     val transitionScope: SharedTransitionScope,
@@ -17,7 +18,7 @@ class PreviewScope(
 fun ProvidePreviewDefaults(
     content: @Composable PreviewScope.() -> Unit
 ) {
-    MaterialTheme {
+    TdshopTheme {
         SharedTransitionLayout {
             AnimatedVisibility(true) {
                 PreviewScope(this@SharedTransitionLayout, this).content()

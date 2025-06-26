@@ -86,4 +86,5 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.encrypted.datastore)
+    implementation(libs.zxing)
 }

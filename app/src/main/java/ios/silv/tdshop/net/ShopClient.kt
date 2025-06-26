@@ -19,6 +19,8 @@ import shop.terminal.api.models.address.Address
 import shop.terminal.api.models.address.AddressCreateParams
 import shop.terminal.api.models.address.AddressCreateResponse
 import shop.terminal.api.models.address.AddressGetParams
+import shop.terminal.api.models.card.Card
+import shop.terminal.api.models.card.CardCollectResponse
 import shop.terminal.api.models.cart.Cart
 import shop.terminal.api.models.cart.CartClearResponse
 import shop.terminal.api.models.cart.CartSetAddressParams
@@ -64,6 +66,24 @@ class ShopClient(
                         logcat { e.stackTraceToString() }
                     }
                 }
+        }
+    }
+
+    suspend fun collectCard(): Result<CardCollectResponse.Data> {
+        return runCatching {
+            withContext(ioDispatcher) {
+                client.card().collect()
+            }
+                .data()
+        }
+    }
+
+    suspend fun cardList(): Result<List<Card>> {
+        return runCatching {
+            withContext(ioDispatcher) {
+                client.card().list()
+            }
+                .data()
         }
     }
 

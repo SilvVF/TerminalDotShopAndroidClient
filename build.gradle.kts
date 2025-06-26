@@ -25,7 +25,8 @@ subprojects {
                     "-opt-in=coil.annotation.ExperimentalCoilApi",
                     "-opt-in=kotlinx.coroutines.FlowPreview",
                     "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-                    "-opt-in=androidx.compose.animation.ExperimentalSharedTransitionApi"
+                    "-opt-in=androidx.compose.animation.ExperimentalSharedTransitionApi",
+                    "-opt-in=kotlin.time.ExperimentalTime"
                 )
             }
         }

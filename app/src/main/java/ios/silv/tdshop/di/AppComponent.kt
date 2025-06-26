@@ -5,6 +5,7 @@ import ios.silv.tdshop.EncryptedSettingsStore
 import ios.silv.tdshop.SettingsStore
 import ios.silv.tdshop.encryptedStore
 import ios.silv.tdshop.net.CartRepo
+import ios.silv.tdshop.net.PaymentRepo
 import ios.silv.tdshop.net.ProductRepo
 import ios.silv.tdshop.net.ShopClient
 import ios.silv.tdshop.settingsPresenterProvider
@@ -32,6 +33,10 @@ abstract class AppComponent(
     @AppScope
     @Provides
     fun provideProductRepo(shopClient: ShopClient): ProductRepo = ProductRepo(shopClient)
+
+    @AppScope
+    @Provides
+    fun providePaymentRepo(shopClient: ShopClient): PaymentRepo = PaymentRepo(shopClient)
 
     @AppScope
     @Provides

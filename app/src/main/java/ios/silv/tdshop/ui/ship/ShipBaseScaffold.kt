@@ -1,6 +1,7 @@
 package ios.silv.tdshop.ui.ship
 
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +22,7 @@ import ios.silv.term_ui.rememberScaffoldState
 @Composable
 fun ShipBaseScaffold(
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     fab: @Composable ScaffoldState.() -> Unit,
     content: @Composable ScaffoldState.() -> Unit,
 ) {
@@ -29,7 +30,7 @@ fun ShipBaseScaffold(
 
     rememberScaffoldState(
         sharedTransitionScope = sharedTransitionScope,
-        animatedVisibilityScope = animatedContentScope
+        animatedVisibilityScope = animatedVisibilityScope
     ).PersistentScaffold(
         topBar = {
             PoppableDestinationTopAppBar(

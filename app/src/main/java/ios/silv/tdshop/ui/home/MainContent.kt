@@ -3,6 +3,7 @@ package ios.silv.tdshop.ui.home
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
@@ -70,6 +71,7 @@ import ios.silv.tdshop.nav.LocalBackStack
 import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.ui.ProvidePreviewDefaults
 import ios.silv.tdshop.ui.components.QtyIndicator
 import ios.silv.tdshop.ui.compose.EventEffect
 import ios.silv.tdshop.ui.compose.EventFlow
@@ -110,13 +112,13 @@ fun EntryProviderBuilder<Screen>.mainScreenEntry(
 
 @Composable
 private fun MainScaffold(
-    animatedContentScope: AnimatedContentScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope,
     state: MainState,
     events: EventFlow<MainEvent>,
 ) {
     rememberScaffoldState(
-        animatedVisibilityScope = animatedContentScope,
+        animatedVisibilityScope = animatedVisibilityScope,
         sharedTransitionScope = sharedTransitionScope,
     ).PersistentScaffold(
         topBar = {
@@ -542,40 +544,37 @@ private fun CartEdit(
 @Preview
 @Composable
 private fun PreviewMainScreen() {
-    TdshopTheme {
 
-        val events = rememberEventFlow<MainEvent>()
-        var state by remember {
-            mutableStateOf(
-                MainState(
-                    loading = false,
-                    products = previewUiProducts,
-                    selectedProduct = null,
-                    cart = cartPreviewData
-                )
+    val events = rememberEventFlow<MainEvent>()
+    var state by remember {
+        mutableStateOf(
+            MainState(
+                loading = false,
+                products = previewUiProducts,
+                selectedProduct = null,
+                cart = cartPreviewData
             )
-        }
+        )
+    }
 
-        EventEffect(events) {
-            when (it) {
-                is MainEvent.ViewProduct -> {
-                    state = state.copy(
-                        selectedProduct = if (state.selectedProduct != null) null else it.product
-                    )
-                }
-                else -> Unit
-            }
-        }
-
-        AnimatedContent(true) { _ ->
-            SharedTransitionLayout {
-                MainScaffold(
-                    this@AnimatedContent,
-                    this@SharedTransitionLayout,
-                    state = state,
-                    events = events
+    EventEffect(events) {
+        when (it) {
+            is MainEvent.ViewProduct -> {
+                state = state.copy(
+                    selectedProduct = if (state.selectedProduct != null) null else it.product
                 )
             }
+
+            else -> Unit
         }
+    }
+
+    ProvidePreviewDefaults {
+        MainScaffold(
+            this,
+            this,
+            state = state,
+            events = events
+        )
     }
 }

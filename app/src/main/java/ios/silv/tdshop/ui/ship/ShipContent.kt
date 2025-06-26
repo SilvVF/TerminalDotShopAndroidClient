@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
@@ -62,6 +63,7 @@ import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.Ship
 import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.ui.ProvidePreviewDefaults
 import ios.silv.tdshop.ui.cart.CartEvent
 import ios.silv.tdshop.ui.components.CartBreadCrumbs
 import ios.silv.tdshop.ui.components.QtyIndicator
@@ -91,7 +93,7 @@ fun EntryProviderBuilder<Screen>.shipScreenEntry(
 
 @Composable
 private fun SelectShippingDestination(
-    animatedContentScope: AnimatedContentScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope,
     state: ShipSelectState,
     modifier: Modifier = Modifier
@@ -99,7 +101,7 @@ private fun SelectShippingDestination(
     val backStack = LocalBackStack.current
     ShipBaseScaffold(
         sharedTransitionScope,
-        animatedContentScope,
+        animatedVisibilityScope,
         fab = {
             PersistentCustomFab {
                 if (state.selectedAddressId != null) {
@@ -347,22 +349,16 @@ fun SharedTransitionScope.AddressPreview(state: ShipSelectState, modifier: Modif
 @Preview
 @Composable
 private fun PreviewViewShipContent() {
-    TdshopTheme {
-        SharedTransitionLayout {
-            AnimatedContent(true) { target ->
-                target
-                SelectShippingDestination(
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedContentScope = this@AnimatedContent,
-                    state = ShipSelectState(
-                        emptyList(),
-                        null,
-                        null,
-                        {}
-                    )
-                )
-            }
-        }
+    ProvidePreviewDefaults {
+        SelectShippingDestination(
+            sharedTransitionScope = this,
+            animatedVisibilityScope = this,
+            state = ShipSelectState(
+                emptyList(),
+                null,
+                null,
+            ){}
+        )
     }
 }
 

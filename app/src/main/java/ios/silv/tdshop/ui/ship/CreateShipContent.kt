@@ -2,6 +2,7 @@ package ios.silv.tdshop.ui.ship
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.navigation3.runtime.entry
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import ios.silv.tdshop.nav.AddShipDest
 import ios.silv.tdshop.nav.Screen
+import ios.silv.tdshop.ui.ProvidePreviewDefaults
 import ios.silv.tdshop.ui.components.CartBreadCrumbs
 import ios.silv.tdshop.ui.theme.TdshopTheme
 import ios.silv.term_ui.PersistentCustomFab
@@ -51,12 +53,12 @@ fun EntryProviderBuilder<Screen>.addShipDestEntry(
 private fun CreateShippingDestination(
     state: ShipCreateState,
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier
 ) {
     ShipBaseScaffold(
         sharedTransitionScope,
-        animatedContentScope,
+        animatedVisibilityScope,
         fab = {
             PersistentCustomFab {
                 TerminalSectionButton(
@@ -213,19 +215,14 @@ fun ShipAddressView(
 @Preview
 @Composable
 private fun PreviewCreateShipContent() {
-    TdshopTheme {
-        SharedTransitionLayout {
-            AnimatedContent(true) { scope ->
-                scope
-                CreateShippingDestination(
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedContentScope = this@AnimatedContent,
-                    state = ShipCreateState(
-                        false,
-                        CreateDestinationState(),
-                    ) {},
-                )
-            }
-        }
+    ProvidePreviewDefaults {
+        CreateShippingDestination(
+            sharedTransitionScope = this,
+            animatedVisibilityScope = this,
+            state = ShipCreateState(
+                false,
+                CreateDestinationState(),
+            ) {},
+        )
     }
 }

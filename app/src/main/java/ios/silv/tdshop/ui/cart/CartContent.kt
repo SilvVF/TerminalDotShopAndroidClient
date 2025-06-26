@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
@@ -67,6 +68,7 @@ import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.Ship
 import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.ui.ProvidePreviewDefaults
 import ios.silv.tdshop.ui.components.CartBreadCrumbs
 import ios.silv.tdshop.ui.components.QtyIndicator
 import ios.silv.tdshop.ui.compose.EventEffect
@@ -101,13 +103,13 @@ fun EntryProviderBuilder<Screen>.cartScreenEntry(
 @Composable
 private fun CartScaffold(
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     state: CartState,
 ) {
     val backStack = LocalBackStack.current
     rememberScaffoldState(
         sharedTransitionScope = sharedTransitionScope,
-        animatedVisibilityScope = animatedContentScope
+        animatedVisibilityScope = animatedVisibilityScope
     ).PersistentScaffold(
         topBar = {
             PoppableDestinationTopAppBar(
@@ -378,54 +380,50 @@ fun CartListItem(
 @Preview
 @Composable
 private fun PreviewCartContent() {
-    TdshopTheme {
-        val backStack = LocalBackStack.current
-        val events = rememberEventFlow<CartEvent>()
+    val backStack = LocalBackStack.current
+    val events = rememberEventFlow<CartEvent>()
 
-        var state by remember {
-            mutableStateOf(
-                CartState(
-                    cart = cartPreviewData,
-                    products = previewUiProducts,
-                    selectedItem = null,
-                    groupedItems = run {
-                        val variantIdToProducts = previewUiProducts
-                            .map { p -> p.variants.map { v -> p to v } }
-                            .flatten()
-                            .groupBy { it.second.id }
-                            .mapValues { it.value.first() }
+    var state by remember {
+        mutableStateOf(
+            CartState(
+                cart = cartPreviewData,
+                products = previewUiProducts,
+                selectedItem = null,
+                groupedItems = run {
+                    val variantIdToProducts = previewUiProducts
+                        .map { p -> p.variants.map { v -> p to v } }
+                        .flatten()
+                        .groupBy { it.second.id }
+                        .mapValues { it.value.first() }
 
-                        cartPreviewData.items.mapNotNull { item ->
-                            val (product, variant) = variantIdToProducts[item.productVariantId]
-                                ?: return@mapNotNull null
-                            Triple(
-                                item, product, variant
-                            )
-                        }
-                    },
-                    events = events::tryEmit
-                )
+                    cartPreviewData.items.mapNotNull { item ->
+                        val (product, variant) = variantIdToProducts[item.productVariantId]
+                            ?: return@mapNotNull null
+                        Triple(
+                            item, product, variant
+                        )
+                    }
+                },
+                events = events::tryEmit
             )
-        }
+        )
+    }
 
-        EventEffect(events) {
-            when (it) {
-                is CartEvent.ViewProduct -> state = state.copy(
-                    selectedItem = it.item
-                )
+    EventEffect(events) {
+        when (it) {
+            is CartEvent.ViewProduct -> state = state.copy(
+                selectedItem = it.item
+            )
 
-                else -> Unit
-            }
+            else -> Unit
         }
+    }
 
-        SharedTransitionLayout {
-            AnimatedContent(true) { _ ->
-                CartScaffold(
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedContentScope = this@AnimatedContent,
-                    state = state
-                )
-            }
-        }
+    ProvidePreviewDefaults {
+        CartScaffold(
+            sharedTransitionScope = this,
+            animatedVisibilityScope = this,
+            state = state
+        )
     }
 }

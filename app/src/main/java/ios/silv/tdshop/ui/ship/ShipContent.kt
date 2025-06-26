@@ -1,31 +1,54 @@
 package ios.silv.tdshop.ui.ship
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
@@ -34,19 +57,21 @@ import androidx.navigation3.runtime.entry
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import ios.silv.tdshop.nav.AddShipDest
 import ios.silv.tdshop.nav.LocalBackStack
+import ios.silv.tdshop.nav.Payment
 import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.Ship
+import ios.silv.tdshop.types.UiCartItem
+import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.ui.cart.CartEvent
+import ios.silv.tdshop.ui.components.CartBreadCrumbs
+import ios.silv.tdshop.ui.components.QtyIndicator
 import ios.silv.tdshop.ui.compose.MutedAlpha
 import ios.silv.tdshop.ui.theme.TdshopTheme
 import ios.silv.term_ui.PersistentCustomFab
-import ios.silv.term_ui.PersistentScaffold
-import ios.silv.term_ui.PoppableDestinationTopAppBar
-import ios.silv.term_ui.ScaffoldState
+import ios.silv.term_ui.TerminalSection
 import ios.silv.term_ui.TerminalSectionButton
 import ios.silv.term_ui.TerminalSectionDefaults
-import ios.silv.term_ui.TerminalTextField
-import ios.silv.term_ui.TerminalTitle
-import ios.silv.term_ui.rememberScaffoldState
+import shop.terminal.api.models.address.Address
 
 
 fun EntryProviderBuilder<Screen>.shipScreenEntry(
@@ -63,56 +88,6 @@ fun EntryProviderBuilder<Screen>.shipScreenEntry(
     }
 }
 
-fun EntryProviderBuilder<Screen>.addShipDestEntry(
-    sharedTransitionScope: SharedTransitionScope,
-) {
-    entry<AddShipDest> {
-        val state = shipPresenter()
-
-        CreateShippingDestination(
-            state,
-            sharedTransitionScope,
-            LocalNavAnimatedContentScope.current,
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-
-@Composable
-private fun ShipContent(
-    sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope,
-    fab: @Composable ScaffoldState.() -> Unit,
-    content: @Composable () -> Unit,
-) {
-    val backStack = LocalBackStack.current
-
-    rememberScaffoldState(
-        sharedTransitionScope = sharedTransitionScope,
-        animatedVisibilityScope = animatedContentScope
-    ).PersistentScaffold(
-        topBar = {
-            PoppableDestinationTopAppBar(
-                visible = backStack.canPop,
-                onBackPressed = { backStack.pop() },
-                title = { TerminalTitle(text = "Ship") },
-            )
-        },
-        floatingActionButton = {
-            fab()
-        }
-    ) { paddingValues ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .imePadding()
-        ) {
-            content()
-        }
-    }
-}
-
 
 @Composable
 private fun SelectShippingDestination(
@@ -122,202 +97,249 @@ private fun SelectShippingDestination(
     modifier: Modifier = Modifier
 ) {
     val backStack = LocalBackStack.current
-    ShipContent(
+    ShipBaseScaffold(
         sharedTransitionScope,
         animatedContentScope,
         fab = {
             PersistentCustomFab {
-                TerminalSectionButton(
-                    onClick = {
-                        backStack.push(AddShipDest)
-                    },
-                    modifier = Modifier.size(64.dp),
-                    label = {
-                        TerminalSectionDefaults.Label("Add")
+                if (state.selectedAddressId != null) {
+                    TerminalSectionButton(
+                        onClick = {
+                            backStack.push(Payment)
+                        },
+                        modifier = Modifier.size(64.dp),
+                        label = {
+                            TerminalSectionDefaults.Label("Pay")
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Done,
+                            contentDescription = null
+                        )
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null
-                    )
+                } else {
+                    TerminalSectionButton(
+                        onClick = {
+                            backStack.push(AddShipDest)
+                        },
+                        modifier = Modifier.size(64.dp),
+                        label = {
+                            TerminalSectionDefaults.Label("Add")
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null
+                        )
+                    }
                 }
             }
         }
     ) {
-        Column(
-            modifier = modifier
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 2.dp)
-        ) {
-            Text(
-                "select shipping address",
-                color = LocalContentColor.current.copy(alpha = MutedAlpha)
-            )
-            state.addresses.fastForEach {
-                Text("$it")
+        BackHandler(state.previewAddress != null) {
+            state.events(ShipSelectEvent.PreviewAddress(null))
+        }
+
+        LazyColumn(modifier.fillMaxSize()) {
+            item {
+                Text(
+                    "select shipping address",
+                    color = LocalContentColor.current.copy(alpha = MutedAlpha)
+                )
             }
-            TerminalSectionButton(
-                onClick = {
-                    backStack.push(AddShipDest)
-                },
-                modifier = Modifier.height(90.dp),
-                label = {
-                    TerminalSectionDefaults.Label("add address")
-                }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            items(
+                state.addresses,
+                key = { it.id() }
+            ) { address ->
+                AnimatedVisibility(
+                    visible = address.id() != state.previewAddress?.id(),
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                    modifier = Modifier.animateItem()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null
+                    ShipListItem(
+                        item = address,
+                        selected = address.id() == state.selectedAddressId,
+                        events = state.events,
+                        modifier = Modifier
+                            .heightIn(min = 120.dp, max = 240.dp)
+                            .sharedElement(
+                                sharedContentState = rememberSharedContentState(key = address.id()),
+                                animatedVisibilityScope = this@AnimatedVisibility
+                            )
+                            .padding(horizontal = 2.dp)
+                            .combinedClickable(
+                                onLongClick = {
+                                    state.events(
+                                        ShipSelectEvent.PreviewAddress(address)
+                                    )
+                                },
+                                onClick = {
+                                    state.events(
+                                        ShipSelectEvent.SetAddress(address)
+                                    )
+                                }
+                            )
                     )
+                }
+            }
+            item {
+                TerminalSectionButton(
+                    onClick = {
+                        backStack.push(AddShipDest)
+                    },
+                    modifier = Modifier.height(90.dp),
+                    label = {
+                        TerminalSectionDefaults.Label("add address")
+                    }
+                ) {
                     Row(
-                        Modifier.weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("add new address")
-                        Text("enter")
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null
+                        )
+                        Row(
+                            Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("add new address")
+                            Text("enter")
+                        }
                     }
                 }
+            }
+        }
+        AddressPreview(state)
+    }
+}
+
+@Composable
+fun ShipListItem(
+    item: Address,
+    selected: Boolean,
+    events: (ShipSelectEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TerminalSection(
+        label = {
+            TerminalSectionDefaults.Label(
+                item.name(),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    textDecoration = if (selected) {
+                        TextDecoration.Underline
+                    } else {
+                        TextDecoration.None
+                    }
+                )
+            )
+        },
+        borderStroke = if (selected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground)
+        },
+        modifier = modifier
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(2.dp)
+                    .padding(start = 6.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    item.city(),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    item.street1(),
+                    color = LocalContentColor.current.copy(
+                        alpha = MutedAlpha
+                    ),
+                    maxLines = 2
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.End,
+            ) {
+                Text(
+                    item.country(),
+                    modifier = Modifier.padding(end = 12.dp)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CreateShippingDestination(
-    state: ShipState,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope,
-    modifier: Modifier = Modifier
-) {
-    ShipContent(
-        sharedTransitionScope,
-        animatedContentScope,
-        fab = {
-            PersistentCustomFab {
-                TerminalSectionButton(
+fun SharedTransitionScope.AddressPreview(state: ShipSelectState, modifier: Modifier = Modifier) {
+    AnimatedContent(
+        modifier = modifier.fillMaxSize(),
+        transitionSpec = {
+            fadeIn() togetherWith fadeOut()
+        },
+        // key by only these two items the cart quantity changing would cause this state to change otherwise
+        targetState = state.previewAddress,
+        contentKey = { item -> item?.id() },
+        label = "ProductDetails"
+    ) { address ->
+        if (address != null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(remember(::MutableInteractionSource), null) {
+                            state.events(ShipSelectEvent.PreviewAddress(null))
+                        }
+                )
+                TerminalSection(
                     label = {
-                        TerminalSectionDefaults.Label("Create")
+                        TerminalSectionDefaults.Label(
+                            address.name(),
+                            color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+                        )
                     },
-                    onClick = {
-                        state.events(ShipEvent.CreateDest)
-                    }
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxHeight(0.5f)
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(key = address.id()),
+                            animatedVisibilityScope = this@AnimatedContent,
+                            clipInOverlayDuringTransition = OverlayClip(RectangleShape)
+                        )
+                        .clip(RectangleShape)
+                        .clickable(remember(::MutableInteractionSource), null) {}
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null
+                    ShipAddressView(
+                        state = remember(address) {
+                            CreateDestinationState(address)
+                        },
+                        creating = true,
+                        readOnly = true,
+                        events = {},
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
-        },
-    ) {
-        Column(
-            modifier = modifier
-                .verticalScroll(rememberScrollState())
-        ) {
-            TerminalTextField(
-                text = state.destState.name,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(name = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Name") },
-                error = state.destState.nameErr,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text
-                )
-            )
-            TerminalTextField(
-                text = state.destState.street1,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(street1 = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Street 1") },
-                error = state.destState.street1Err,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text
-                )
-            )
-            TerminalTextField(
-                text = state.destState.street2,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(street2 = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Street 2") },
-                error = state.destState.street2Err,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text
-                )
-            )
-            TerminalTextField(
-                text = state.destState.city,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(city = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("City") },
-                error = state.destState.cityErr,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text
-                )
-            )
-            TerminalTextField(
-                text = state.destState.state,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(state = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("State") },
-                error = state.destState.stateErr,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text
-                )
-            )
-            TerminalTextField(
-                text = state.destState.country,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(country = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Country") },
-                error = state.destState.countryErr,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Text
-                )
-            )
-            TerminalTextField(
-                text = state.destState.phone,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(phone = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Phone") },
-                error = state.destState.phoneErr,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Phone
-                )
-            )
-            TerminalTextField(
-                text = state.destState.postalCode,
-                onValueChange = {
-                    state.events(ShipEvent.UpdateDest(state.destState.copy(postalCode = it)))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Postal code") },
-                error = state.destState.postalCodeErr,
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Number
-                )
-            )
         }
     }
 }
@@ -327,36 +349,20 @@ private fun CreateShippingDestination(
 private fun PreviewViewShipContent() {
     TdshopTheme {
         SharedTransitionLayout {
-            AnimatedContent(true) { scope ->
-                scope
+            AnimatedContent(true) { target ->
+                target
                 SelectShippingDestination(
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this@AnimatedContent,
                     state = ShipSelectState(
-                        emptyList()
-                    ){},
+                        emptyList(),
+                        null,
+                        null,
+                        {}
+                    )
                 )
             }
         }
     }
 }
 
-@Preview
-@Composable
-private fun PreviewCreateShipContent() {
-    TdshopTheme {
-        SharedTransitionLayout {
-            AnimatedContent(true) { scope ->
-                scope
-                CreateShippingDestination(
-                    sharedTransitionScope = this@SharedTransitionLayout,
-                    animatedContentScope = this@AnimatedContent,
-                    state = ShipState(
-                        false,
-                        CreateDestinationState(),
-                    ){},
-                )
-            }
-        }
-    }
-}

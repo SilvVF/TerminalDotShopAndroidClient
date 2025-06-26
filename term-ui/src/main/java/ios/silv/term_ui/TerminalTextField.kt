@@ -49,6 +49,8 @@ fun TerminalTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     textStyle: TextStyle = MaterialTheme.typography.bodyLarge,
+    readOnly: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val contentColor = LocalContentColor.current
@@ -62,7 +64,9 @@ fun TerminalTextField(
             .focusRequester(focusRequester)
             .focusable(interactionSource = interactionSource)
             .animateContentSize(),
+        readOnly = readOnly,
         interactionSource = interactionSource,
+        enabled = enabled,
         value = text,
         textStyle = textStyle.copy(
             color = contentColor

@@ -25,6 +25,7 @@ import shop.terminal.api.models.cart.CartSetAddressParams
 import shop.terminal.api.models.cart.CartSetAddressResponse
 import shop.terminal.api.models.cart.CartSetItemParams
 import shop.terminal.api.models.cart.CartSetItemResponse
+import shop.terminal.api.models.order.Order
 import shop.terminal.api.models.product.Product
 
 @AppScope
@@ -63,6 +64,15 @@ class ShopClient(
                         logcat { e.stackTraceToString() }
                     }
                 }
+        }
+    }
+
+    suspend fun createOrderFromCart(): Result<Order> {
+        return runCatching {
+            withContext(ioDispatcher) {
+                client.cart().convert()
+            }
+                .data()
         }
     }
 

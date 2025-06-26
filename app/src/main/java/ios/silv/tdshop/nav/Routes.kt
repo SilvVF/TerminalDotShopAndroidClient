@@ -28,3 +28,8 @@ data object AddShipDest: Screen {
 data object Ship: Screen {
     private fun readResolve(): Any = Ship
 }
+
+@Serializable
+data object Payment: Screen {
+    private fun readResolve(): Any = Payment
+}

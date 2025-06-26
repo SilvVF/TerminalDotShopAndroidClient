@@ -27,7 +27,7 @@ import kotlin.jvm.Throws
 class CartRepo(
     private val shopClient: ShopClient
 ) {
-    private val cartFlow = MutableStateFlow<UiCart>(UiCart())
+    private val cartFlow = MutableStateFlow(UiCart())
 
     @Throws(TerminalInvalidDataException::class)
     suspend fun refresh() {

@@ -1,5 +1,6 @@
 package ios.silv.term_ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -151,6 +152,33 @@ fun  TerminalSectionButton(
                     ) {
                         onClick()
                     }
+            )
+        },
+        measurePolicy = remember(labelOffset) {
+            TerminalLayoutMeasurePolicy(labelOffset)
+        }
+    )
+}
+
+@Composable
+fun TerminalSection(
+    modifier: Modifier = Modifier,
+    label: @Composable () -> Unit,
+    borderStroke: BorderStroke,
+    containerColor: Color = Color.Transparent,
+    labelOffset: DpOffset = DpOffset(12.dp, 0.dp),
+    content: @Composable () -> Unit
+) {
+    Layout(
+        modifier = modifier,
+        content = {
+            content()
+            label()
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .border(borderStroke)
+                    .background(containerColor)
             )
         },
         measurePolicy = remember(labelOffset) {

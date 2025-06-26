@@ -67,6 +67,7 @@ import ios.silv.tdshop.nav.Screen
 import ios.silv.tdshop.nav.Ship
 import ios.silv.tdshop.types.UiCartItem
 import ios.silv.tdshop.types.UiProduct
+import ios.silv.tdshop.ui.components.CartBreadCrumbs
 import ios.silv.tdshop.ui.components.QtyIndicator
 import ios.silv.tdshop.ui.compose.EventEffect
 import ios.silv.tdshop.ui.compose.MutedAlpha
@@ -143,12 +144,19 @@ private fun CartScaffold(
             }
         }
     ) { paddingValues ->
-        CartContent(
-            state = state,
-            modifier = Modifier
+        Column(
+            Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-        )
+        ) {
+            CartBreadCrumbs(modifier = Modifier.fillMaxWidth())
+            Box(Modifier.fillMaxSize()) {
+                CartContent(
+                    state = state,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
     }
 }
 
@@ -255,7 +263,7 @@ private fun SharedTransitionScope.ProductDetails(
                         Modifier
                             .fillMaxSize()
                             .padding(12.dp)
-                            .verticalScroll(rememberScrollState( ))
+                            .verticalScroll(rememberScrollState())
                     ) {
                         Text(product.name, style = MaterialTheme.typography.titleMedium)
                         Column(
@@ -411,7 +419,7 @@ private fun PreviewCartContent() {
         }
 
         SharedTransitionLayout {
-            AnimatedContent(true) {_ ->
+            AnimatedContent(true) { _ ->
                 CartScaffold(
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedContentScope = this@AnimatedContent,
